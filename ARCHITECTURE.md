@@ -7,7 +7,7 @@ Tài liệu này mô tả chi tiết về mặt kỹ thuật, cấu trúc thư m
 *   **Frontend Mobile & Web:** React Native (Framework), Expo (Toolchain/Build system).
 *   **Styling:** NativeWind (Sử dụng utility classes của Tailwind CSS).
 *   **State Management:** Zustand (Quản lý Global state nhẹ, nhanh, không boilerplate).
-*   **Local Database (Offline-first):** WatermelonDB (Database quan hệ nội bộ siêu tốc, tối ưu riêng cho luồng Offline-Sync).
+*   **Local Database (Offline-first):** expo-sqlite (Database quan hệ nội bộ tiêu chuẩn của Expo, hoạt động trơn tru trên Expo Go).
 *   **Backend as a Service (BaaS):** Supabase (PostgreSQL, Authentication, Storage).
 *   **Routing/Navigation:** Expo Router (File-based routing, giúp quản lý chuyển trang giống hệt Next.js).
 
@@ -24,7 +24,7 @@ EtoDo/
 │   │   ├── activities/     # (Tasks, Events) - Components, logic riêng
 │   │   ├── habits/         # (Habits)
 │   │   ├── journal/        # (Journals)
-│   └── database/           # Chứa schema và models của WatermelonDB
+│   └── database/           # Chứa schema và queries của expo-sqlite
 │   ├── services/           # Chứa logic gọi API (Supabase Client), hàm Sync data
 │   ├── store/              # Global state (Zustand - quản lý user auth, theme)
 │   ├── utils/              # Các hàm helper dùng chung (format ngày tháng, thuật toán SM-2)
@@ -43,7 +43,7 @@ EtoDo/
 
 ## 3. Thiết kế Cơ sở dữ liệu (Database Schema)
 
-Hệ thống sử dụng cơ sở dữ liệu quan hệ (PostgreSQL trên Supabase). WatermelonDB ở Local cũng sẽ map 1-1 với cấu trúc này.
+Hệ thống sử dụng cơ sở dữ liệu quan hệ (PostgreSQL trên Supabase). expo-sqlite ở Local cũng sẽ map 1-1 với cấu trúc này.
 
 ```mermaid
 erDiagram
@@ -118,12 +118,12 @@ erDiagram
 
 ## 4. Luồng Dữ liệu Đồng bộ (Offline-first Data Flow)
 
-Ứng dụng ưu tiên đọc và ghi vào Local DB (WatermelonDB) để đảm bảo tốc độ phản hồi ngay lập tức (0 độ trễ).
+Ứng dụng ưu tiên đọc và ghi vào Local DB (expo-sqlite) để đảm bảo tốc độ phản hồi ngay lập tức (0 độ trễ).
 
 ```mermaid
 sequenceDiagram
     participant U as User (App)
-    participant L as Local DB (WatermelonDB)
+    participant L as Local DB (expo-sqlite)
     participant W as Worker (Background Task)
     participant S as Cloud DB (Supabase)
 
@@ -133,7 +133,7 @@ sequenceDiagram
     L->>L: Đánh dấu bản ghi là 'created_locally'
 
     Note over W, S: 2. Đồng bộ ngầm (Khi có mạng)
-    W->>L: Hàm Sync của WatermelonDB tự động gom các bản ghi thay đổi
+    W->>L: Hàm Sync tự động gom các bản ghi thay đổi
     W->>S: Push data lên Supabase (API Call)
     S-->>W: Xác nhận thành công
     W->>L: Xóa cờ 'locally_modified', cập nhật trạng thái đã sync
@@ -141,7 +141,7 @@ sequenceDiagram
     Note over S, L: 3. Kéo dữ liệu mới (Khi khởi động/Pull to refresh)
     L->>S: Fetch các bản ghi bị thay đổi từ timestamp lần cuối sync
     S-->>L: Trả về JSON Data mới
-    L->>L: Update WatermelonDB
+    L->>L: Update expo-sqlite
 
     Note over L, W: 4. Dọn dẹp bộ nhớ (Tiết kiệm dung lượng)
     W->>L: Quét các dữ liệu ĐÃ SYNC thành công (Đặc biệt là Hình ảnh lớn)
@@ -158,4 +158,4 @@ sequenceDiagram
         *   Quét bảng `Activities`: Tìm các record có `deadline < Today` & `status != hoàn thành` $\rightarrow$ Đổi `status = hoàn thành` (áp dụng cho các hoạt động tự động hoàn thành).
         *   Quét bảng `Habits`: Đảm bảo `HabitLogs` cho ngày `Today` được tạo mặc định là `false`.
     4.  Cập nhật lại `Last_Opened_Date = Today`.
-    5.  Sau khi áp dụng logic ở Local DB, WatermelonDB sẽ lo việc sync những thay đổi này lên Supabase.
+    5.  Sau khi áp dụng logic ở Local DB, một hàm sync tùy chỉnh sẽ đẩy những thay đổi này lên Supabase.

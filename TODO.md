@@ -4,19 +4,20 @@ Tài liệu này theo dõi tiến độ thực tế của dự án.
 *Chú thích: `[ ]` Chưa làm, `[/]` Đang làm, `[x]` Đã xong.*
 
 ## Giai đoạn 1: Khởi tạo & Thiết lập cơ bản (Foundation)
-- [ ] Khởi tạo dự án React Native với Expo (Sử dụng Expo Router).
-- [ ] Cài đặt & cấu hình NativeWind (Tailwind CSS).
-- [ ] Cài đặt Zustand (Quản lý State).
-- [ ] Thiết lập kết nối Supabase Client (Authentication & Database API).
-- [ ] Cấu hình WatermelonDB và cài đặt lược đồ dữ liệu (Local Schema) khớp với `database.sql`.
-- [ ] Xây dựng khung Navigation cơ bản (Bottom Tabs: Dashboard, Habits, Journal, English).
+- [x] Khởi tạo dự án React Native với Expo (Sử dụng Expo Router).
+- [x] Cài đặt & cấu hình NativeWind (Tailwind CSS).
+- [x] Cài đặt Zustand (Quản lý State).
+- [x] Thiết lập kết nối Supabase Client (Authentication & Database API).
+- [x] Cấu hình expo-sqlite và cài đặt lược đồ dữ liệu (Local Schema) khớp với `database.sql`.
+- [x] Xây dựng khung Navigation cơ bản (Bottom Tabs: Dashboard, Habits, Journal, English).
 
 ## Giai đoạn 2: Phát triển Core Features (CRUD)
-- [ ] **Auth:** Xây dựng màn hình Đăng nhập / Đăng ký (Email/Password qua Supabase).
-- [ ] **Activities:**
-  - [ ] UI Danh sách & Thêm mới Task/Event.
-  - [ ] Logic tích hoàn thành Task thủ công.
-  - [ ] Đồng bộ Activities với Supabase.
+- [x] **Auth:** Xây dựng màn hình Đăng nhập / Đăng ký (Email/Password qua Supabase).
+- [x] **Activities:**
+  - [x] Xây dựng Form thêm Task/Event chi tiết (đầy đủ Title, Date, Priority, Category, Location, Notes).
+  - [x] Xây dựng 3 giao diện Dashboard: Hôm nay (Gallery), Tuần tới (Board), Lịch trình (Calendar).
+  - [x] Logic tích hoàn thành Task thủ công.
+  - [x] Đồng bộ Activities với Supabase.
 - [ ] **Journals:**
   - [ ] UI viết nhật ký (hỗ trợ nhập text cơ bản).
   - [ ] Xử lý Upload và nén ảnh (Expo Image Manipulator).

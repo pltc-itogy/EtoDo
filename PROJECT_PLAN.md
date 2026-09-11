@@ -13,7 +13,7 @@ Dựa trên nền tảng kỹ năng của bạn (JS, HTML, CSS, React, Tailwind)
   - *Lý do:* Bạn đã có nền tảng React và Tailwind, nên việc tiếp cận Expo sẽ cực kỳ nhanh chóng và tự nhiên. Expo giúp build app cho cả iOS, Android và Web (PC) từ một nguồn code duy nhất mà không cần can thiệp sâu vào Native.
 - **Backend/Database:** **Supabase** (hoặc **Firebase**). 
   - *Lý do:* Đây là kiến trúc **Serverless (BaaS - Backend as a Service)**. Nghĩa là bạn **không cần viết code backend bằng Python hay Node.js**. Supabase tự động tạo sẵn các API dựa trên Database, bạn chỉ cần gọi API từ frontend React Native là xong. Gói Free cung cấp đủ Database (PostgreSQL), Authentication (Đăng nhập) và Storage (Lưu ảnh).
-- **Local Database (Offline-first):** **WatermelonDB** hoặc **MMKV / AsyncStorage**.
+- **Local Database (Offline-first):** **expo-sqlite**.
   - *Lý do:* Dữ liệu được lưu trực tiếp trên bộ nhớ thiết bị giúp app load ngay lập tức kể cả khi mất mạng. **Về cơ chế dọn dẹp:** Bạn có quyền quyết định. Thường ta sẽ giữ lại trên máy để xem offline cho nhanh, nhưng bạn hoàn toàn có thể viết code tự động xóa các dữ liệu cũ (vd: nhật ký của tháng trước) khỏi máy sau khi đã đồng bộ an toàn lên Cloud để tiết kiệm bộ nhớ.
 
 ## 3. Hoàn Thiện Các Module Tính Năng
@@ -43,7 +43,7 @@ Dựa trên nền tảng kỹ năng của bạn (JS, HTML, CSS, React, Tailwind)
 - Hoàn thiện tính năng Thêm/Sửa/Xóa/Xem cho Activities và Nhật ký.
 
 ### Giai đoạn 2: Tự Động Hóa, Thuật Toán & Local DB
-- Tích hợp WatermelonDB/MMKV cho tính năng Offline.
+- Tích hợp expo-sqlite cho tính năng Offline.
 - Xây dựng module **Thói quen (Daily Habits)** và thiết lập logic tự động.
 - Phát triển module **Tiếng Anh (Notes + Flashcard)** và thuật toán Spaced Repetition.
 

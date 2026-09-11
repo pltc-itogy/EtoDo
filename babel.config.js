@@ -8,8 +8,6 @@ module.exports = function (api) {
       ["babel-preset-expo", { jsxImportSource: "nativewind" }]
     ],
     plugins: [
-      // Plugin hỗ trợ viết Decorator (Cú pháp @) - bắt buộc phải có cho WatermelonDB
-      ['@babel/plugin-proposal-decorators', { legacy: true }],
       // Plugin bắt buộc cho thư viện Reanimated (hiệu ứng chuyển động)
       'react-native-reanimated/plugin',
     ],

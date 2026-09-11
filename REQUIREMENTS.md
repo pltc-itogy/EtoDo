@@ -12,7 +12,7 @@ Dự án được định hướng là mã nguồn mở (Open Source) theo mô h
 ## 2. Tiêu chuẩn Viết Code (Coding Standards)
 Dự án này được viết ra với mục đích sử dụng cá nhân và học tập, vì vậy code cần phải cực kỳ dễ đọc và dễ hiểu:
 - **Comment giải thích chi tiết:** Bất cứ đoạn logic, function, hay flow xử lý nào hơi phức tạp đều **phải có comment giải thích rõ ràng** bên trên bằng tiếng Việt. Việc này giúp chủ dự án (người chưa quen với React Native/Expo) có thể đọc hiểu code đang làm gì.
-- **Tuân thủ Kiến trúc:** Viết code bám sát cấu trúc thư mục (Feature-based) và công nghệ đã thống nhất trong `ARCHITECTURE.md` (WatermelonDB, Expo Router, NativeWind).
+- **Tuân thủ Kiến trúc:** Viết code bám sát cấu trúc thư mục (Feature-based) và công nghệ đã thống nhất trong `ARCHITECTURE.md` (expo-sqlite, Expo Router, NativeWind).
 - **Phân tách Component:** Tránh viết các file quá dài. Tách nhỏ UI thành các component tái sử dụng được.
 
 ## 3. Quản lý Tiến độ linh hoạt
