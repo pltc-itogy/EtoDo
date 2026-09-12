@@ -1,4 +1,4 @@
-import { db } from './index';
+import { db } from './connection';
 
 // Định nghĩa kiểu dữ liệu của một Activity với đầy đủ các trường
 export interface Activity {

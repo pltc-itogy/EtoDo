@@ -30,6 +30,15 @@ export default function WeekBoard({ activities, onRefresh }: Props) {
     }
   });
 
+  // Sắp xếp từng ngày theo thời gian
+  Object.keys(grouped).forEach(k => {
+    grouped[k].sort((a, b) => {
+      const timeA = a.start_date || a.deadline || '9999';
+      const timeB = b.start_date || b.deadline || '9999';
+      return timeA.localeCompare(timeB);
+    });
+  });
+
   const confirmDelete = (id: string) => {
     Alert.alert('Xóa công việc', 'Bạn có chắc muốn xóa không?', [
       { text: 'Hủy', style: 'cancel' },
@@ -70,9 +79,18 @@ export default function WeekBoard({ activities, onRefresh }: Props) {
                       className={`bg-notion-bg border border-notion-border rounded p-3 mb-3 ${isCompleted ? 'opacity-50' : ''}`}
                     >
                       <View className="flex-row justify-between items-start mb-1">
-                        <Text className={`flex-1 font-mono-bold text-sm ${isCompleted ? 'text-notion-muted line-through' : 'text-notion-text'}`}>
-                          {activity.title}
-                        </Text>
+                        <View className="flex-1">
+                          <Text className={`font-mono-bold text-sm ${isCompleted ? 'text-notion-muted line-through' : 'text-notion-text'}`}>
+                            {activity.title}
+                          </Text>
+                          {(activity.start_date || activity.deadline) && (
+                            <Text className="text-[10px] font-mono text-notion-muted mt-1">
+                              ⏰ {activity.start_date ? new Date(activity.start_date).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'}) : ''}
+                              {activity.start_date && activity.deadline ? ' - ' : ''}
+                              {activity.deadline ? new Date(activity.deadline).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'}) : ''}
+                            </Text>
+                          )}
+                        </View>
                         <TouchableOpacity onPress={() => confirmDelete(activity.id)}>
                           <Text className="text-red-500 font-mono text-xs ml-2">X</Text>
                         </TouchableOpacity>

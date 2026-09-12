@@ -45,10 +45,14 @@ export default function CalendarSchedule({ activities, onRefresh }: Props) {
     selectedTextColor: '#191919'
   };
 
-  // Lọc task tương ứng với ngày đang chọn
+  // Lọc task tương ứng với ngày đang chọn và sắp xếp theo giờ
   const selectedActivities = activities.filter(a => {
     const dStr = a.deadline || a.start_date;
     return dStr && dStr.startsWith(selectedDate);
+  }).sort((a, b) => {
+    const timeA = a.start_date || a.deadline || '9999';
+    const timeB = b.start_date || b.deadline || '9999';
+    return timeA.localeCompare(timeB);
   });
 
   const confirmDelete = (id: string) => {
@@ -102,9 +106,18 @@ export default function CalendarSchedule({ activities, onRefresh }: Props) {
                 <View className={`w-5 h-5 border rounded-sm mr-3 items-center justify-center ${isCompleted ? 'bg-notion-text border-notion-text' : 'border-notion-muted'}`}>
                   {isCompleted && <Text className="text-notion-bg text-xs">✓</Text>}
                 </View>
-                <Text className={`flex-1 font-mono-bold text-base ${isCompleted ? 'text-notion-muted line-through' : 'text-notion-text'}`}>
-                  {activity.title}
-                </Text>
+                <View className="flex-1">
+                  <Text className={`font-mono-bold text-base ${isCompleted ? 'text-notion-muted line-through' : 'text-notion-text'}`}>
+                    {activity.title}
+                  </Text>
+                  {(activity.start_date || activity.deadline) && (
+                    <Text className="text-[10px] font-mono text-notion-muted mt-1">
+                      ⏰ {activity.start_date ? new Date(activity.start_date).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'}) : ''}
+                      {activity.start_date && activity.deadline ? ' - ' : ''}
+                      {activity.deadline ? new Date(activity.deadline).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'}) : ''}
+                    </Text>
+                  )}
+                </View>
                 <TouchableOpacity onPress={() => confirmDelete(activity.id)}>
                   <Text className="text-red-500 font-mono ml-3">X</Text>
                 </TouchableOpacity>

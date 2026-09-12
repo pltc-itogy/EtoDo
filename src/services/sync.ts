@@ -1,6 +1,7 @@
 import { db } from '../database';
 import { supabase } from './supabase';
 import { getActivities } from '../database/activities';
+import { getCategories, upsertCategoryLocal } from '../database/categories';
 import { Alert } from 'react-native';
 
 // Hàm đồng bộ dữ liệu giữa SQLite cục bộ và Supabase
@@ -51,9 +52,53 @@ export async function sync() {
       if (pushError) throw new Error(pushError.message);
     }
 
+    // Đồng bộ các bảng khác
+    await syncCategories();
+
     Alert.alert('Thành công', 'Đã đồng bộ dữ liệu xong!');
   } catch (error) {
     console.error('Lỗi đồng bộ:', error);
     Alert.alert('Đồng bộ thất bại', 'Vui lòng kiểm tra lại kết nối mạng');
+  }
+}
+
+// Hàm đồng bộ Danh mục (Categories)
+export async function syncCategories() {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // 1. Kéo dữ liệu từ Cloud về
+    const { data: cloudCats, error } = await supabase
+      .from('categories')
+      .select('*')
+      .eq('user_id', user.id);
+
+    if (error) throw new Error(error.message);
+
+    if (cloudCats) {
+      db.execSync('BEGIN TRANSACTION;');
+      for (const cat of cloudCats) {
+        upsertCategoryLocal(cat);
+      }
+      db.execSync('COMMIT;');
+    }
+
+    // 2. Đẩy dữ liệu từ Local lên Cloud
+    const localCats = getCategories(user.id);
+    if (localCats.length > 0) {
+      const { error: pushError } = await supabase.from('categories').upsert(
+        localCats.map(c => ({
+          id: c.id,
+          user_id: c.user_id,
+          name: c.name,
+          color: c.color,
+          created_at: c.created_at,
+        }))
+      );
+      if (pushError) throw new Error(pushError.message);
+    }
+  } catch (error) {
+    console.error('Lỗi đồng bộ categories:', error);
   }
 }

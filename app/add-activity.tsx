@@ -1,8 +1,9 @@
-import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView, Modal } from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { useState, useCallback } from 'react';
 import { useUserStore } from '../src/store';
 import { addActivity, AddActivityData } from '../src/database/activities';
+import { Category, getCategories, addCategory, deleteCategory } from '../src/database/categories';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function AddActivity() {
@@ -17,10 +18,51 @@ export default function AddActivity() {
   
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [deadline, setDeadline] = useState<Date | null>(null);
+  
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showDeadlinePicker, setShowDeadlinePicker] = useState(false);
+  
+  // States cho Time Picker
+  const [showStartTimePicker, setShowStartTimePicker] = useState(false);
+  const [showDeadlineTimePicker, setShowDeadlineTimePicker] = useState(false);
 
-  // Hàm Lưu vào SQLite
+  // States cho Categories Modal
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [showCatModal, setShowCatModal] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
+
+  useFocusEffect(
+    useCallback(() => {
+      if (user) {
+        setCategories(getCategories(user.id));
+      }
+    }, [user])
+  );
+
+  const handleAddCategory = () => {
+    if (!newCatName.trim() || !user) return;
+    try {
+      const newCat = addCategory({ userId: user.id, name: newCatName.trim() });
+      setCategories([...categories, newCat]);
+      setCategory(newCat.name); // Auto select
+      setNewCatName('');
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Lỗi', 'Không thể tạo danh mục');
+    }
+  };
+
+  const handleDeleteCategory = (id: string, name: string) => {
+    Alert.alert('Xóa', `Xóa danh mục "${name}"?`, [
+      { text: 'Hủy', style: 'cancel' },
+      { text: 'Xóa', style: 'destructive', onPress: () => {
+          deleteCategory(id);
+          setCategories(categories.filter(c => c.id !== id));
+          if (category === name) setCategory(''); // clear selected
+      }}
+    ]);
+  };
+
   const handleSave = () => {
     if (!title.trim()) return Alert.alert('Lỗi', 'Vui lòng nhập tên công việc');
     if (!user) return Alert.alert('Lỗi', 'Bạn chưa đăng nhập');
@@ -51,7 +93,11 @@ export default function AddActivity() {
     { label: 'Cao', value: 'cao', color: 'bg-red-600' }
   ];
 
-  const formatDate = (date: Date | null) => date ? date.toLocaleDateString('vi-VN') : 'Chưa chọn';
+  const formatDate = (date: Date | null) => date ? date.toLocaleDateString('vi-VN') : 'Chọn ngày';
+  const formatTime = (date: Date | null) => {
+    if (!date) return 'Chọn giờ';
+    return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
+  };
 
   return (
     <ScrollView className="flex-1 bg-notion-bg p-4 pt-10">
@@ -74,14 +120,33 @@ export default function AddActivity() {
       />
 
       {/* Danh mục */}
-      <Text className="text-notion-text font-mono mb-2">Danh mục</Text>
+      <View className="flex-row justify-between items-center mb-2">
+        <Text className="text-notion-text font-mono">Danh mục</Text>
+        <TouchableOpacity onPress={() => setShowCatModal(true)}>
+          <Text className="text-notion-muted font-mono text-xs underline">Quản lý nhãn</Text>
+        </TouchableOpacity>
+      </View>
       <TextInput
-        className="bg-notion-card text-notion-text font-mono border border-notion-border rounded-md px-4 py-3 mb-4"
-        placeholder="Công việc, Học tập, Cá nhân..."
+        className="bg-notion-card text-notion-text font-mono border border-notion-border rounded-md px-4 py-3 mb-3"
+        placeholder="Nhập trực tiếp hoặc chọn bên dưới..."
         placeholderTextColor="#9B9B9B"
         value={category}
         onChangeText={setCategory}
       />
+      {/* Category Chips ngang */}
+      {categories.length > 0 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row mb-4">
+          {categories.map(c => (
+            <TouchableOpacity 
+              key={c.id} 
+              onPress={() => setCategory(c.name)}
+              className={`mr-2 px-3 py-1.5 border border-notion-border rounded-full ${category === c.name ? 'bg-notion-text' : 'bg-notion-card'}`}
+            >
+              <Text className={`font-mono text-xs ${category === c.name ? 'text-notion-bg' : 'text-notion-muted'}`}>{c.name}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
 
       {/* Mức độ ưu tiên */}
       <Text className="text-notion-text font-mono mb-2">Mức độ ưu tiên</Text>
@@ -100,37 +165,91 @@ export default function AddActivity() {
       {/* Thời gian */}
       <View className="flex-row justify-between mb-4">
         <View className="flex-1 mr-2">
-          <Text className="text-notion-text font-mono mb-2">Ngày bắt đầu</Text>
-          <TouchableOpacity onPress={() => setShowStartPicker(true)} className="bg-notion-card border border-notion-border p-3 rounded-md">
-            <Text className="text-notion-text font-mono text-center">{formatDate(startDate)}</Text>
-          </TouchableOpacity>
+          <Text className="text-notion-text font-mono mb-2">Bắt đầu</Text>
+          <View className="flex-row gap-2">
+            <TouchableOpacity onPress={() => setShowStartPicker(true)} className="flex-1 bg-notion-card border border-notion-border p-3 rounded-md">
+              <Text className="text-notion-text font-mono text-center text-xs">{formatDate(startDate)}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowStartTimePicker(true)} className="flex-1 bg-notion-card border border-notion-border p-3 rounded-md">
+              <Text className="text-notion-text font-mono text-center text-xs">{formatTime(startDate)}</Text>
+            </TouchableOpacity>
+          </View>
+          
           {showStartPicker && (
             <DateTimePicker
               value={startDate || new Date()}
               mode="date"
               display="default"
-              onChange={(event, selectedDate) => {
+              onValueChange={(event, selectedDate) => {
                 setShowStartPicker(false);
-                if (selectedDate) setStartDate(selectedDate);
+                if (selectedDate) {
+                  const newD = startDate || new Date();
+                  newD.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+                  setStartDate(new Date(newD));
+                }
               }}
+              onDismiss={() => setShowStartPicker(false)}
+            />
+          )}
+          {showStartTimePicker && (
+            <DateTimePicker
+              value={startDate || new Date()}
+              mode="time"
+              display="default"
+              onValueChange={(event, selectedDate) => {
+                setShowStartTimePicker(false);
+                if (selectedDate) {
+                  const newD = startDate || new Date();
+                  newD.setHours(selectedDate.getHours(), selectedDate.getMinutes());
+                  setStartDate(new Date(newD));
+                }
+              }}
+              onDismiss={() => setShowStartTimePicker(false)}
             />
           )}
         </View>
 
         <View className="flex-1 ml-2">
           <Text className="text-notion-text font-mono mb-2">Hạn chót</Text>
-          <TouchableOpacity onPress={() => setShowDeadlinePicker(true)} className="bg-notion-card border border-notion-border p-3 rounded-md">
-            <Text className="text-notion-text font-mono text-center">{formatDate(deadline)}</Text>
-          </TouchableOpacity>
+          <View className="flex-row gap-2">
+            <TouchableOpacity onPress={() => setShowDeadlinePicker(true)} className="flex-1 bg-notion-card border border-notion-border p-3 rounded-md">
+              <Text className="text-notion-text font-mono text-center text-xs">{formatDate(deadline)}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowDeadlineTimePicker(true)} className="flex-1 bg-notion-card border border-notion-border p-3 rounded-md">
+              <Text className="text-notion-text font-mono text-center text-xs">{formatTime(deadline)}</Text>
+            </TouchableOpacity>
+          </View>
+
           {showDeadlinePicker && (
             <DateTimePicker
               value={deadline || new Date()}
               mode="date"
               display="default"
-              onChange={(event, selectedDate) => {
+              onValueChange={(event, selectedDate) => {
                 setShowDeadlinePicker(false);
-                if (selectedDate) setDeadline(selectedDate);
+                if (selectedDate) {
+                  const newD = deadline || new Date();
+                  newD.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+                  setDeadline(new Date(newD));
+                }
               }}
+              onDismiss={() => setShowDeadlinePicker(false)}
+            />
+          )}
+          {showDeadlineTimePicker && (
+            <DateTimePicker
+              value={deadline || new Date()}
+              mode="time"
+              display="default"
+              onValueChange={(event, selectedDate) => {
+                setShowDeadlineTimePicker(false);
+                if (selectedDate) {
+                  const newD = deadline || new Date();
+                  newD.setHours(selectedDate.getHours(), selectedDate.getMinutes());
+                  setDeadline(new Date(newD));
+                }
+              }}
+              onDismiss={() => setShowDeadlineTimePicker(false)}
             />
           )}
         </View>
@@ -168,6 +287,49 @@ export default function AddActivity() {
           Lưu công việc
         </Text>
       </TouchableOpacity>
+
+      {/* Modal Categories */}
+      <Modal visible={showCatModal} transparent animationType="slide">
+        <View className="flex-1 justify-end bg-black/50">
+          <View className="bg-notion-bg w-full h-[60%] rounded-t-2xl p-4">
+            <View className="flex-row justify-between items-center mb-4">
+              <Text className="font-mono-bold text-notion-text text-lg">Quản lý Danh mục</Text>
+              <TouchableOpacity onPress={() => setShowCatModal(false)}>
+                <Text className="font-mono text-notion-text">Đóng</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View className="flex-row mb-6">
+              <TextInput 
+                className="flex-1 bg-notion-card border border-notion-border rounded-md px-4 py-3 text-notion-text font-mono mr-2"
+                placeholder="Nhập tên danh mục mới..."
+                placeholderTextColor="#9B9B9B"
+                value={newCatName}
+                onChangeText={setNewCatName}
+              />
+              <TouchableOpacity onPress={handleAddCategory} className="bg-notion-text px-4 py-3 rounded-md items-center justify-center">
+                <Text className="text-notion-bg font-mono-bold">Thêm</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView>
+              {categories.length === 0 ? (
+                <Text className="text-notion-muted font-mono italic text-center">Chưa có danh mục nào.</Text>
+              ) : (
+                categories.map(c => (
+                  <View key={c.id} className="flex-row justify-between items-center bg-notion-card border border-notion-border p-4 rounded-md mb-2">
+                    <Text className="font-mono text-notion-text">{c.name}</Text>
+                    <TouchableOpacity onPress={() => handleDeleteCategory(c.id, c.name)} className="px-2 py-1">
+                      <Text className="text-red-500 font-mono text-xs">Xóa</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
     </ScrollView>
   );
 }
