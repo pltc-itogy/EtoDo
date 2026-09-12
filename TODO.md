@@ -20,15 +20,16 @@ Tài liệu này theo dõi tiến độ thực tế của dự án.
   - [x] Logic sắp xếp công việc tự động theo Thời gian (Giờ/Phút).
   - [x] Logic tích hoàn thành Task thủ công.
   - [x] Đồng bộ Activities & Categories với Supabase.
-- [ ] **Journals:**
-  - [ ] UI viết nhật ký (hỗ trợ nhập text cơ bản).
-  - [ ] Xử lý Upload và nén ảnh (Expo Image Manipulator).
-  - [ ] Đồng bộ Journals với Supabase.
+- [x] **Journals:**
+  - [x] UI viết nhật ký (hỗ trợ chọn Cảm xúc, Ngày bù).
+  - [x] Xử lý Upload và nén ảnh (expo-image-manipulator).
+  - [x] Đồng bộ Journals với Supabase (Database & Storage bucket).
 
 ## Giai đoạn 3: Tính năng nâng cao & Tự động hóa
-- [ ] **Habits:**
+- [ ] **Habits & Tasks:**
   - [ ] UI Danh sách thói quen & Nút Check-in.
   - [ ] Logic tính toán chuỗi (Streak).
+  - [ ] Thêm "Bảng Công Việc" (Tasks lọc theo danh mục Công Việc, ưu tiên) ở bên dưới danh sách thói quen.
 - [ ] **English Notes:**
   - [ ] Giao diện Thêm từ vựng/Tips.
   - [ ] Giao diện học Flashcard.

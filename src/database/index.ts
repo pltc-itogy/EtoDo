@@ -1,5 +1,6 @@
 import { db } from './connection';
 import { initCategoriesTable } from './categories';
+import { initJournalsTable } from './journals';
 
 export { db };
 
@@ -22,4 +23,5 @@ export function initDatabase() {
   `);
   
   initCategoriesTable();
+  initJournalsTable();
 }
