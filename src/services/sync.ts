@@ -4,6 +4,7 @@ import { getActivities } from '../database/activities';
 import { getCategories, upsertCategoryLocal } from '../database/categories';
 import { getHabits, getAllHabitLogs, upsertHabitLocal, upsertHabitLogLocal } from '../database/habits';
 import { getJournals, upsertJournalLocal } from '../database/journals';
+import { getAllEnglishNotes, upsertEnglishNoteLocal } from '../database/english';
 import { Alert } from 'react-native';
 
 // Hàm đồng bộ dữ liệu giữa SQLite cục bộ và Supabase
@@ -58,6 +59,7 @@ export async function sync() {
     await syncCategories();
     await syncJournals();
     await syncHabits(); // Gọi đồng bộ Thói quen
+    await syncEnglishNotes(); // Gọi đồng bộ Tiếng Anh
 
     Alert.alert('Thành công', 'Đã đồng bộ dữ liệu xong!');
   } catch (error) {
@@ -268,5 +270,54 @@ export async function syncHabits() {
 
   } catch (error) {
     console.error('Lỗi đồng bộ habits:', error);
+  }
+}
+
+// ----------------------------------------------------
+// Hàm đồng bộ Tiếng Anh (English Notes)
+// ----------------------------------------------------
+export async function syncEnglishNotes() {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // 1. Kéo dữ liệu từ Cloud về
+    const { data: cloudNotes, error } = await supabase
+      .from('english_notes')
+      .select('*')
+      .eq('user_id', user.id);
+
+    if (error) throw new Error(error.message);
+
+    if (cloudNotes) {
+      db.execSync('BEGIN TRANSACTION;');
+      for (const note of cloudNotes) {
+        upsertEnglishNoteLocal(note);
+      }
+      db.execSync('COMMIT;');
+    }
+
+    // 2. Đẩy dữ liệu từ Local lên Cloud
+    const localNotes = getAllEnglishNotes();
+    if (localNotes.length > 0) {
+      const { error: pushError } = await supabase.from('english_notes').upsert(
+        localNotes.map(n => ({
+          id: n.id,
+          user_id: n.user_id,
+          type: n.type,
+          title_or_word: n.title_or_word,
+          content_or_meaning: n.content_or_meaning,
+          example_sentence: n.example_sentence,
+          next_review_date: n.next_review_date,
+          easiness_factor: n.easiness_factor,
+          interval: n.interval,
+          repetitions: n.repetitions,
+          created_at: n.created_at,
+        }))
+      );
+      if (pushError) throw new Error(pushError.message);
+    }
+  } catch (error) {
+    console.error('Lỗi đồng bộ english notes:', error);
   }
 }

@@ -56,6 +56,7 @@ CREATE TABLE english_notes (
     type TEXT NOT NULL, -- 'tip' hoặc 'flashcard'
     title_or_word TEXT NOT NULL,
     content_or_meaning TEXT,
+    example_sentence TEXT,
     next_review_date TIMESTAMP WITH TIME ZONE,
     easiness_factor NUMERIC DEFAULT 2.5,
     interval INTEGER DEFAULT 0,

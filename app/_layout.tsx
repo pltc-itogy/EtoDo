@@ -85,6 +85,27 @@ export default function Layout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="login" />
         <Stack.Screen name="add-activity" options={{ presentation: 'modal' }} />
+        <Stack.Screen 
+          name="activity/[id]" 
+          options={{ 
+            presentation: 'transparentModal', 
+            animation: 'fade', 
+            contentStyle: { backgroundColor: 'transparent' } 
+          }} 
+        />
+        
+        {/* ENGLISH ROUTES */}
+        <Stack.Screen name="add-english" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="review-english" options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="all-flashcards" options={{ presentation: 'modal' }} />
+        <Stack.Screen 
+          name="english/[id]" 
+          options={{ 
+            presentation: 'transparentModal', 
+            animation: 'fade', 
+            contentStyle: { backgroundColor: 'transparent' } 
+          }} 
+        />
       </Stack>
     </View>
   );

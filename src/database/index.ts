@@ -2,6 +2,7 @@ import { db } from './connection';
 import { initCategoriesTable, getCategories, addCategory } from './categories';
 import { initJournalsTable } from './journals';
 import { initHabitsTable } from './habits';
+import { initEnglishTable } from './english';
 import { useUserStore } from '../store';
 
 export { db };
@@ -27,6 +28,7 @@ export function initDatabase() {
   initCategoriesTable();
   initJournalsTable();
   initHabitsTable();
+  initEnglishTable();
 }
 
 export function seedDefaultCategory() {

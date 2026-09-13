@@ -26,15 +26,15 @@ Tài liệu này theo dõi tiến độ thực tế của dự án.
   - [x] Đồng bộ Journals với Supabase (Database & Storage bucket).
 
 ## Giai đoạn 3: Tính năng nâng cao & Tự động hóa (Đang thực hiện)
-- [ ] **Habits & Tasks:**
-  - [ ] UI Danh sách thói quen & Nút Check-in.
-  - [ ] Logic tính toán chuỗi (Streak) độc lập.
-  - [ ] Thêm "Bảng Công Việc" (Tasks ưu tiên) bên dưới danh sách thói quen.
-  - [ ] Tự động seed danh mục "Công việc" mặc định.
-- [ ] **English Notes:**
-  - [ ] Giao diện Thêm từ vựng/Tips.
-  - [ ] Giao diện học Flashcard.
-  - [ ] Code thuật toán Spaced Repetition tính ngày ôn tiếp theo.
+- [x] **Habits & Tasks:**
+  - [x] UI Danh sách thói quen & Nút Check-in.
+  - [x] Logic tính toán chuỗi (Streak) độc lập.
+  - [x] Thêm "Bảng Công Việc" (Tasks ưu tiên) bên dưới danh sách thói quen.
+  - [x] Tự động seed danh mục "Công việc" mặc định.
+- [x] **English Notes (Tiếng Anh):**
+  - [x] Giao diện Thêm từ vựng/Tips.
+  - [x] Giao diện học Flashcard.
+  - [x] Code thuật toán Spaced Repetition tính ngày ôn tiếp theo.
 - [ ] **Tự động hóa (Automation Utils):**
   - [ ] Logic kiểm tra qua ngày mới khi mở App.
   - [ ] Hàm tự động complete Event đã qua ngày.
