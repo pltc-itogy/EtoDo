@@ -54,6 +54,37 @@ export function addActivity(data: AddActivityData) {
   );
 }
 
+// Lấy 1 công việc theo ID
+export function getActivityById(id: string): Activity | null {
+  return db.getFirstSync<Activity>('SELECT * FROM activities WHERE id = ?', [id]);
+}
+
+// Cập nhật công việc
+export function updateActivity(id: string, data: AddActivityData) {
+  const priority = data.priority || 'trung bình';
+  db.runSync(
+    `UPDATE activities SET 
+      title = ?, 
+      start_date = ?, 
+      deadline = ?, 
+      category = ?, 
+      priority = ?, 
+      location = ?, 
+      notes = ? 
+    WHERE id = ?`,
+    [
+      data.title, 
+      data.startDate || null, 
+      data.deadline || null, 
+      data.category || null, 
+      priority, 
+      data.location || null, 
+      data.notes || null,
+      id
+    ]
+  );
+}
+
 // 3. Đánh dấu hoàn thành / chưa hoàn thành
 export function toggleActivityStatus(id: string, currentStatus: string) {
   const newStatus = currentStatus === 'hoàn thành' ? 'chưa bắt đầu' : 'hoàn thành';

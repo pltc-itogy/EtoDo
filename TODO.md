@@ -25,11 +25,12 @@ Tài liệu này theo dõi tiến độ thực tế của dự án.
   - [x] Xử lý Upload và nén ảnh (expo-image-manipulator).
   - [x] Đồng bộ Journals với Supabase (Database & Storage bucket).
 
-## Giai đoạn 3: Tính năng nâng cao & Tự động hóa
+## Giai đoạn 3: Tính năng nâng cao & Tự động hóa (Đang thực hiện)
 - [ ] **Habits & Tasks:**
   - [ ] UI Danh sách thói quen & Nút Check-in.
-  - [ ] Logic tính toán chuỗi (Streak).
-  - [ ] Thêm "Bảng Công Việc" (Tasks lọc theo danh mục Công Việc, ưu tiên) ở bên dưới danh sách thói quen.
+  - [ ] Logic tính toán chuỗi (Streak) độc lập.
+  - [ ] Thêm "Bảng Công Việc" (Tasks ưu tiên) bên dưới danh sách thói quen.
+  - [ ] Tự động seed danh mục "Công việc" mặc định.
 - [ ] **English Notes:**
   - [ ] Giao diện Thêm từ vựng/Tips.
   - [ ] Giao diện học Flashcard.

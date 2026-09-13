@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { supabase } from '../src/services/supabase';
 import { useUserStore } from '../src/store';
-import { initDatabase } from '../src/database';
+import { initDatabase, seedDefaultCategory } from '../src/database';
 
 // Nhúng file global.css để kích hoạt TailwindCSS trên toàn bộ ứng dụng
 // @ts-ignore
@@ -65,7 +65,8 @@ export default function Layout() {
       // Chưa đăng nhập -> Trục xuất ra trang Login
       router.replace('/login');
     } else if (user && inAuthGroup) {
-      // Đã đăng nhập -> Đẩy vào trang chính
+      // Đã đăng nhập -> Tạo danh mục mặc định (nếu chưa có) và Đẩy vào trang chính
+      seedDefaultCategory();
       router.replace('/(tabs)');
     }
   }, [user, isAuthInitialized, segments]);

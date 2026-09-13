@@ -2,6 +2,7 @@ import { db } from '../database';
 import { supabase } from './supabase';
 import { getActivities } from '../database/activities';
 import { getCategories, upsertCategoryLocal } from '../database/categories';
+import { getHabits, getAllHabitLogs, upsertHabitLocal, upsertHabitLogLocal } from '../database/habits';
 import { getJournals, upsertJournalLocal } from '../database/journals';
 import { Alert } from 'react-native';
 
@@ -55,7 +56,8 @@ export async function sync() {
 
     // Đồng bộ các bảng khác
     await syncCategories();
-    await syncJournals(); // Gọi hàm đồng bộ Nhật ký
+    await syncJournals();
+    await syncHabits(); // Gọi đồng bộ Thói quen
 
     Alert.alert('Thành công', 'Đã đồng bộ dữ liệu xong!');
   } catch (error) {
@@ -195,5 +197,76 @@ export async function syncJournals() {
     }
   } catch (error) {
     console.error('Lỗi đồng bộ journals:', error);
+  }
+}
+
+// ----------------------------------------------------
+// Hàm đồng bộ Thói quen (Habits) & Lịch sử (Habit_Logs)
+// ----------------------------------------------------
+export async function syncHabits() {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // --- ĐỒNG BỘ HABITS ---
+    // 1. Kéo dữ liệu Habits
+    const { data: cloudHabits, error: habitError } = await supabase
+      .from('habits')
+      .select('*')
+      .eq('user_id', user.id);
+
+    if (habitError) throw habitError;
+
+    if (cloudHabits) {
+      db.execSync('BEGIN TRANSACTION;');
+      for (const h of cloudHabits) upsertHabitLocal(h);
+      db.execSync('COMMIT;');
+    }
+
+    // 2. Đẩy dữ liệu Habits
+    const localHabits = getHabits();
+    for (const h of localHabits) {
+      const { error: pushError } = await supabase.from('habits').upsert({
+        id: h.id,
+        user_id: h.user_id,
+        name: h.name,
+        icon: h.icon,
+        color: h.color,
+        created_at: h.created_at,
+      });
+      if (pushError) console.error('Lỗi đẩy habit:', pushError);
+    }
+
+    // --- ĐỒNG BỘ HABIT_LOGS ---
+    // Vì Logs liên kết với Habits, ta sẽ lấy toàn bộ logs của các habits thuộc về user này
+    const habitIds = cloudHabits?.map(h => h.id) || [];
+    if (habitIds.length > 0) {
+      const { data: cloudLogs, error: logError } = await supabase
+        .from('habit_logs')
+        .select('*')
+        .in('habit_id', habitIds);
+
+      if (logError) throw logError;
+
+      if (cloudLogs) {
+        db.execSync('BEGIN TRANSACTION;');
+        for (const l of cloudLogs) upsertHabitLogLocal(l);
+        db.execSync('COMMIT;');
+      }
+    }
+
+    const localLogs = getAllHabitLogs();
+    for (const l of localLogs) {
+      const { error: pushLogError } = await supabase.from('habit_logs').upsert({
+        id: l.id,
+        habit_id: l.habit_id,
+        log_date: l.log_date,
+        is_completed: l.is_completed,
+      });
+      if (pushLogError) console.error('Lỗi đẩy habit log:', pushLogError);
+    }
+
+  } catch (error) {
+    console.error('Lỗi đồng bộ habits:', error);
   }
 }
