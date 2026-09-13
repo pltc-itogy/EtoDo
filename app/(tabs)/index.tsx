@@ -6,11 +6,12 @@ import { Activity, getActivities } from '../../src/database/activities';
 import TodayGallery from '../../src/components/TodayGallery';
 import WeekBoard from '../../src/components/WeekBoard';
 import CalendarSchedule from '../../src/components/CalendarSchedule';
+import AllList from '../../src/components/AllList';
 
 export default function Dashboard() {
   const router = useRouter();
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [currentView, setCurrentView] = useState<'today' | 'week' | 'calendar'>('today');
+  const [currentView, setCurrentView] = useState<'today' | 'week' | 'calendar' | 'all'>('today');
 
   const loadData = useCallback(() => {
     const data = getActivities();
@@ -27,6 +28,7 @@ export default function Dashboard() {
     { id: 'today', label: 'Hôm nay' },
     { id: 'week', label: '7 Ngày tới' },
     { id: 'calendar', label: 'Lịch trình 📅' },
+    { id: 'all', label: 'Tất cả 📋' },
   ];
 
   return (
@@ -64,6 +66,7 @@ export default function Dashboard() {
         {currentView === 'today' && <TodayGallery activities={activities} onRefresh={loadData} />}
         {currentView === 'week' && <WeekBoard activities={activities} onRefresh={loadData} />}
         {currentView === 'calendar' && <CalendarSchedule activities={activities} onRefresh={loadData} />}
+        {currentView === 'all' && <AllList activities={activities} onRefresh={loadData} />}
       </View>
     </View>
   );

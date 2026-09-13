@@ -1,7 +1,8 @@
-import * as SQLite from 'expo-sqlite';
+import { db } from './connection';
+import { initCategoriesTable } from './categories';
+import { initJournalsTable } from './journals';
 
-// Mở kết nối đến file database nội bộ (Tự động tạo nếu chưa có)
-export const db = SQLite.openDatabaseSync('etodo.db');
+export { db };
 
 // Hàm tạo cấu trúc bảng (Chạy 1 lần khi mở app)
 export function initDatabase() {
@@ -20,4 +21,7 @@ export function initDatabase() {
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
   `);
+  
+  initCategoriesTable();
+  initJournalsTable();
 }

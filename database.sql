@@ -63,6 +63,15 @@ CREATE TABLE english_notes (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- 6. BẢNG CATEGORIES (Danh mục tự tạo)
+CREATE TABLE categories (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    color TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- ==========================================
 -- BẬT ROW LEVEL SECURITY (BẢO MẬT DỮ LIỆU NGƯỜI DÙNG)
 -- Mỗi người dùng chỉ thấy được dữ liệu của chính mình
@@ -72,6 +81,7 @@ ALTER TABLE habits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE habit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE journals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE english_notes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
 
 -- Tạo chính sách (Policies) tự động lọc data theo user_id
 CREATE POLICY "Users can manage their own activities" ON activities FOR ALL USING (auth.uid() = user_id);
@@ -82,3 +92,4 @@ CREATE POLICY "Users can manage their habit logs" ON habit_logs FOR ALL USING (
 );
 CREATE POLICY "Users can manage their journals" ON journals FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "Users can manage their english notes" ON english_notes FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage their categories" ON categories FOR ALL USING (auth.uid() = user_id);

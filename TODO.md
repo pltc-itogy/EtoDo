@@ -14,19 +14,22 @@ Tài liệu này theo dõi tiến độ thực tế của dự án.
 ## Giai đoạn 2: Phát triển Core Features (CRUD)
 - [x] **Auth:** Xây dựng màn hình Đăng nhập / Đăng ký (Email/Password qua Supabase).
 - [x] **Activities:**
-  - [x] Xây dựng Form thêm Task/Event chi tiết (đầy đủ Title, Date, Priority, Category, Location, Notes).
-  - [x] Xây dựng 3 giao diện Dashboard: Hôm nay (Gallery), Tuần tới (Board), Lịch trình (Calendar).
+  - [x] Xây dựng Form thêm Task/Event (chọn Ngày, Giờ, Priority, Category Chips, Location, Notes).
+  - [x] Quản lý Danh mục động (Thêm/Xóa/Chọn nhanh bằng Chips).
+  - [x] Xây dựng 4 giao diện Dashboard: Hôm nay (Gallery), Tuần tới (Board), Lịch trình (Calendar), Tất cả (List).
+  - [x] Logic sắp xếp công việc tự động theo Thời gian (Giờ/Phút).
   - [x] Logic tích hoàn thành Task thủ công.
-  - [x] Đồng bộ Activities với Supabase.
-- [ ] **Journals:**
-  - [ ] UI viết nhật ký (hỗ trợ nhập text cơ bản).
-  - [ ] Xử lý Upload và nén ảnh (Expo Image Manipulator).
-  - [ ] Đồng bộ Journals với Supabase.
+  - [x] Đồng bộ Activities & Categories với Supabase.
+- [x] **Journals:**
+  - [x] UI viết nhật ký (hỗ trợ chọn Cảm xúc, Ngày bù).
+  - [x] Xử lý Upload và nén ảnh (expo-image-manipulator).
+  - [x] Đồng bộ Journals với Supabase (Database & Storage bucket).
 
 ## Giai đoạn 3: Tính năng nâng cao & Tự động hóa
-- [ ] **Habits:**
+- [ ] **Habits & Tasks:**
   - [ ] UI Danh sách thói quen & Nút Check-in.
   - [ ] Logic tính toán chuỗi (Streak).
+  - [ ] Thêm "Bảng Công Việc" (Tasks lọc theo danh mục Công Việc, ưu tiên) ở bên dưới danh sách thói quen.
 - [ ] **English Notes:**
   - [ ] Giao diện Thêm từ vựng/Tips.
   - [ ] Giao diện học Flashcard.

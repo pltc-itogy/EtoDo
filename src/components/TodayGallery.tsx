@@ -19,6 +19,13 @@ export default function TodayGallery({ activities, onRefresh }: Props) {
     return isStartDateToday || isDeadlineToday || noDateButPending;
   });
 
+  // Sắp xếp các task theo thời gian (cái nào có giờ sớm hơn sẽ lên trên)
+  todayActivities.sort((a, b) => {
+    const timeA = a.start_date || a.deadline || '9999';
+    const timeB = b.start_date || b.deadline || '9999';
+    return timeA.localeCompare(timeB);
+  });
+
   const confirmDelete = (id: string) => {
     Alert.alert('Xóa công việc', 'Bạn có chắc muốn xóa không?', [
       { text: 'Hủy', style: 'cancel' },
@@ -65,6 +72,15 @@ export default function TodayGallery({ activities, onRefresh }: Props) {
               <Text className={`font-mono-bold text-base mb-2 ${isCompleted ? 'text-notion-muted line-through' : 'text-notion-text'}`}>
                 {activity.title}
               </Text>
+
+              {/* Hiển thị thời gian */}
+              {(activity.start_date || activity.deadline) && (
+                <Text className="text-[10px] font-mono text-notion-muted mb-2">
+                  ⏰ {activity.start_date ? new Date(activity.start_date).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'}) : ''}
+                  {activity.start_date && activity.deadline ? ' - ' : ''}
+                  {activity.deadline ? new Date(activity.deadline).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'}) : ''}
+                </Text>
+              )}
 
               <View className="flex-row flex-wrap gap-1">
                 <View className={`px-2 py-0.5 rounded border ${pColor}`}>
