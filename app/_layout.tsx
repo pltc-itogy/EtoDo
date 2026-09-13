@@ -6,6 +6,7 @@ import { View } from 'react-native';
 import { supabase } from '../src/services/supabase';
 import { useUserStore } from '../src/store';
 import { initDatabase, seedDefaultCategory } from '../src/database';
+import { checkNewDay } from '../src/utils/automation';
 
 // Nhúng file global.css để kích hoạt TailwindCSS trên toàn bộ ứng dụng
 // @ts-ignore
@@ -48,12 +49,17 @@ export default function Layout() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Xử lý ẩn màn hình chờ
+  // Xử lý ẩn màn hình chờ và chạy Tự động hóa
   useEffect(() => {
     if (fontsLoaded && isAuthInitialized) {
       SplashScreen.hideAsync();
+      
+      // Nếu đã đăng nhập thì check chạy Cron ngày mới
+      if (user) {
+        checkNewDay();
+      }
     }
-  }, [fontsLoaded, isAuthInitialized]);
+  }, [fontsLoaded, isAuthInitialized, user]);
 
   // Logic tự động điều hướng (Route Protection)
   useEffect(() => {

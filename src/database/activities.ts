@@ -98,3 +98,16 @@ export function toggleActivityStatus(id: string, currentStatus: string) {
 export function deleteActivity(id: string) {
   db.runSync('DELETE FROM activities WHERE id = ?', [id]);
 }
+
+// 5. Automation: Tự động đánh dấu hoàn thành các sự kiện đã qua (dựa trên start_date)
+export function autoCompletePastActivities(todayStr: string) {
+  // Lấy các sự kiện có start_date < today (bỏ qua những cái chưa có start_date)
+  db.runSync(
+    `UPDATE activities 
+     SET status = 'hoàn thành' 
+     WHERE start_date IS NOT NULL 
+       AND start_date < ? 
+       AND status != 'hoàn thành'`,
+    [todayStr]
+  );
+}

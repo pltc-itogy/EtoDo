@@ -150,3 +150,17 @@ export function upsertHabitLogLocal(log: HabitLog) {
     [log.id, log.habit_id, log.log_date, log.is_completed ? 1 : 0]
   );
 }
+
+// Automation: Sinh log mặc định (chưa hoàn thành) cho ngày mới để đồng bộ Cloud dễ dàng
+export function seedDailyHabitLogs(todayStr: string) {
+  const habits = getHabits();
+  habits.forEach(h => {
+    const id = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+    // Dùng INSERT OR IGNORE để không ghi đè nếu đã có log cho ngày hôm nay
+    db.runSync(
+      `INSERT OR IGNORE INTO habit_logs (id, habit_id, log_date, is_completed)
+       VALUES (?, ?, ?, 0)`,
+      [id, h.id, todayStr]
+    );
+  });
+}

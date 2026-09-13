@@ -35,10 +35,10 @@ Tài liệu này theo dõi tiến độ thực tế của dự án.
   - [x] Giao diện Thêm từ vựng/Tips.
   - [x] Giao diện học Flashcard.
   - [x] Code thuật toán Spaced Repetition tính ngày ôn tiếp theo.
-- [ ] **Tự động hóa (Automation Utils):**
-  - [ ] Logic kiểm tra qua ngày mới khi mở App.
-  - [ ] Hàm tự động complete Event đã qua ngày.
-  - [ ] Hàm tạo Habit_logs mặc định cho ngày mới.
+- [x] **Tự động hóa (Automation Utils):**
+  - [x] Logic kiểm tra qua ngày mới khi mở App.
+  - [x] Hàm tự động complete Event đã qua ngày.
+  - [x] Hàm tạo Habit_logs mặc định cho ngày mới.
 
 ## Giai đoạn 4: Trải nghiệm & Tối ưu (UX & Polish)
 - [ ] Xử lý luồng Offline-Sync: Lưu local trước, tự động push Supabase ngầm khi có mạng.
