@@ -1,4 +1,5 @@
 import { db } from './connection';
+import { generateUUID } from '../utils/uuid';
 
 export interface Category {
   id: string;
@@ -36,9 +37,8 @@ export function getCategories(userId: string): Category[] {
 }
 
 // 3. Thêm mới category
-export function addCategory(data: AddCategoryData): Category {
-  // Sinh id ngẫu nhiên (hoặc uuid)
-  const id = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+export function addCategory(data: { userId: string; name: string; color?: string }): Category {
+  const id = generateUUID();
   const now = new Date().toISOString();
   
   db.runSync(

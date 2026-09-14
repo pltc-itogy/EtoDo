@@ -7,6 +7,8 @@ import { supabase } from '../src/services/supabase';
 import { useUserStore } from '../src/store';
 import { initDatabase, seedDefaultCategory } from '../src/database';
 import { checkNewDay } from '../src/utils/automation';
+import NetInfo from '@react-native-community/netinfo';
+import { sync } from '../src/services/sync';
 
 // Nhúng file global.css để kích hoạt TailwindCSS trên toàn bộ ứng dụng
 // @ts-ignore
@@ -60,6 +62,20 @@ export default function Layout() {
       }
     }
   }, [fontsLoaded, isAuthInitialized, user]);
+
+  // Lắng nghe mạng để tự động Sync (Offline-Sync)
+  useEffect(() => {
+    if (!isAuthInitialized || !user) return;
+
+    const unsubscribe = NetInfo.addEventListener(state => {
+      if (state.isConnected && state.isInternetReachable) {
+        console.log('[NetInfo] Mạng đã khôi phục, tiến hành đồng bộ ngầm...');
+        sync(true); // Gắn cờ silent = true để không hiện popup Alert
+      }
+    });
+
+    return () => unsubscribe();
+  }, [isAuthInitialized, user]);
 
   // Logic tự động điều hướng (Route Protection)
   useEffect(() => {

@@ -6,9 +6,10 @@ import { getHabits, getAllHabitLogs, upsertHabitLocal, upsertHabitLogLocal } fro
 import { getJournals, upsertJournalLocal } from '../database/journals';
 import { getAllEnglishNotes, upsertEnglishNoteLocal } from '../database/english';
 import { Alert } from 'react-native';
+import * as FileSystem from 'expo-file-system';
 
 // Hàm đồng bộ dữ liệu giữa SQLite cục bộ và Supabase
-export async function sync() {
+export async function sync(silent = false) {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -61,10 +62,14 @@ export async function sync() {
     await syncHabits(); // Gọi đồng bộ Thói quen
     await syncEnglishNotes(); // Gọi đồng bộ Tiếng Anh
 
-    Alert.alert('Thành công', 'Đã đồng bộ dữ liệu xong!');
+    if (!silent) {
+      Alert.alert('Thành công', 'Đã đồng bộ dữ liệu xong!');
+    }
   } catch (error) {
     console.error('Lỗi đồng bộ:', error);
-    Alert.alert('Đồng bộ thất bại', 'Vui lòng kiểm tra lại kết nối mạng');
+    if (!silent) {
+      Alert.alert('Đồng bộ thất bại', 'Vui lòng kiểm tra lại kết nối mạng');
+    }
   }
 }
 
@@ -167,6 +172,14 @@ export async function syncJournals() {
               .getPublicUrl(fileName);
               
             updatedImagesArr.push(publicUrlData.publicUrl);
+
+            // Xóa file local để giải phóng dung lượng (Local DB Cleanup)
+            try {
+              await FileSystem.deleteAsync(uri, { idempotent: true });
+              console.log('Đã xóa ảnh local:', uri);
+            } catch (delEx) {
+              console.log('Lỗi xoá ảnh local:', delEx);
+            }
           } catch (uploadEx) {
             console.error('Lỗi upload ảnh:', uploadEx);
             updatedImagesArr.push(uri); // Nếu lỗi thì giữ nguyên link cũ để lần sau thử lại

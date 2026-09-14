@@ -41,9 +41,9 @@ Tài liệu này theo dõi tiến độ thực tế của dự án.
   - [x] Hàm tạo Habit_logs mặc định cho ngày mới.
 
 ## Giai đoạn 4: Trải nghiệm & Tối ưu (UX & Polish)
-- [ ] Xử lý luồng Offline-Sync: Lưu local trước, tự động push Supabase ngầm khi có mạng.
-- [ ] Kịch bản dọn dẹp Local DB: Tự động xóa ảnh nội bộ sau khi sync để giải phóng RAM/ROM.
-- [ ] Tích hợp Local Notifications (Nhắc nhở học tiếng Anh, làm Task).
-- [ ] Thêm Interactive Widget trên màn hình chính Android.
-- [ ] Kiểm thử tổng thể & Tinh chỉnh UI/UX.
-- [ ] Viết tài liệu README.md chuẩn chỉnh hướng dẫn người khác cài đặt (Open-Source setup).
+- [x] Xử lý luồng Offline-Sync: Lưu local trước, tự động push Supabase ngầm khi có mạng.
+- [x] Kịch bản dọn dẹp Local DB: Tự động xóa ảnh nội bộ sau khi sync để giải phóng RAM/ROM.
+- [~] Tích hợp Local Notifications (Nhắc nhở học tiếng Anh, làm Task) - (Tạm gác lại).
+- [~] Thêm Interactive Widget trên màn hình chính Android - (Tạm gác lại do hạn chế Expo Go).
+- [x] Kiểm thử tổng thể & Tinh chỉnh UI/UX.
+- [x] Viết tài liệu README.md chuẩn chỉnh hướng dẫn người khác cài đặt (Open-Source setup).

@@ -1,4 +1,5 @@
 import { db } from './connection';
+import { generateUUID } from '../utils/uuid';
 
 export interface EnglishNote {
   id: string;
@@ -43,7 +44,7 @@ export function initEnglishTable() {
 
 // 2. Thêm mới ghi chú / từ vựng
 export function addEnglishNote(data: AddEnglishData) {
-  const id = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+  const id = generateUUID();
   const now = new Date().toISOString();
   
   // Mặc định cho flashcard mới là sẽ ôn ngay lập tức (ngày hôm nay)

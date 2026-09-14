@@ -1,4 +1,5 @@
 import { db } from './connection';
+import { generateUUID } from '../utils/uuid';
 
 // Định nghĩa kiểu dữ liệu của một Activity với đầy đủ các trường
 export interface Activity {
@@ -34,7 +35,7 @@ export function getActivities(): Activity[] {
 
 // 2. Thêm mới công việc với đầy đủ thông tin
 export function addActivity(data: AddActivityData) {
-  const id = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+  const id = generateUUID();
   const priority = data.priority || 'trung bình';
   
   db.runSync(

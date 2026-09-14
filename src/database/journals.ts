@@ -1,4 +1,5 @@
 import { db } from './connection';
+import { generateUUID } from '../utils/uuid';
 
 export interface Journal {
   id: string;
@@ -44,7 +45,7 @@ export function getJournalById(id: string): Journal | null {
 }
 
 export function addJournal(data: AddJournalData): Journal {
-  const id = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+  const id = generateUUID();
   const now = new Date().toISOString();
   const imagesStr = JSON.stringify(data.images || []);
 

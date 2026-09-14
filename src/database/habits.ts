@@ -1,4 +1,5 @@
 import { db } from './connection';
+import { generateUUID } from '../utils/uuid';
 
 export interface Habit {
   id: string;
@@ -44,7 +45,7 @@ export function initHabitsTable() {
 }
 
 export function addHabit(data: { userId: string; name: string; icon: string; color: string }): Habit {
-  const id = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+  const id = generateUUID();
   const now = new Date().toISOString();
 
   db.runSync(
@@ -77,7 +78,7 @@ export function getAllHabitLogs(): HabitLog[] {
 }
 
 export function toggleHabitLog(habitId: string, logDate: string, isCompleted: boolean) {
-  const id = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+  const id = generateUUID();
   // Sử dụng INSERT OR REPLACE nhờ UNIQUE(habit_id, log_date)
   db.runSync(
     `INSERT OR REPLACE INTO habit_logs (id, habit_id, log_date, is_completed)
@@ -155,7 +156,7 @@ export function upsertHabitLogLocal(log: HabitLog) {
 export function seedDailyHabitLogs(todayStr: string) {
   const habits = getHabits();
   habits.forEach(h => {
-    const id = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+    const id = generateUUID();
     // Dùng INSERT OR IGNORE để không ghi đè nếu đã có log cho ngày hôm nay
     db.runSync(
       `INSERT OR IGNORE INTO habit_logs (id, habit_id, log_date, is_completed)
