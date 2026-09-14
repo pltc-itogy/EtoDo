@@ -1,6 +1,9 @@
 import { db } from './connection';
-import { initCategoriesTable } from './categories';
+import { initCategoriesTable, getCategories, addCategory } from './categories';
 import { initJournalsTable } from './journals';
+import { initHabitsTable } from './habits';
+import { initEnglishTable } from './english';
+import { useUserStore } from '../store';
 
 export { db };
 
@@ -24,4 +27,18 @@ export function initDatabase() {
   
   initCategoriesTable();
   initJournalsTable();
+  initHabitsTable();
+  initEnglishTable();
+}
+
+export function seedDefaultCategory() {
+  const user = useUserStore.getState().user;
+  if (!user) return;
+  
+  const categories = getCategories(user.id);
+  const hasWorkCategory = categories.some(c => c.name.toLowerCase() === 'công việc');
+  
+  if (!hasWorkCategory) {
+    addCategory({ userId: user.id, name: 'Công việc', color: '#3B82F6' }); // Màu xanh dương mặc định
+  }
 }

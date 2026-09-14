@@ -54,6 +54,37 @@ export function addActivity(data: AddActivityData) {
   );
 }
 
+// Lấy 1 công việc theo ID
+export function getActivityById(id: string): Activity | null {
+  return db.getFirstSync<Activity>('SELECT * FROM activities WHERE id = ?', [id]);
+}
+
+// Cập nhật công việc
+export function updateActivity(id: string, data: AddActivityData) {
+  const priority = data.priority || 'trung bình';
+  db.runSync(
+    `UPDATE activities SET 
+      title = ?, 
+      start_date = ?, 
+      deadline = ?, 
+      category = ?, 
+      priority = ?, 
+      location = ?, 
+      notes = ? 
+    WHERE id = ?`,
+    [
+      data.title, 
+      data.startDate || null, 
+      data.deadline || null, 
+      data.category || null, 
+      priority, 
+      data.location || null, 
+      data.notes || null,
+      id
+    ]
+  );
+}
+
 // 3. Đánh dấu hoàn thành / chưa hoàn thành
 export function toggleActivityStatus(id: string, currentStatus: string) {
   const newStatus = currentStatus === 'hoàn thành' ? 'chưa bắt đầu' : 'hoàn thành';
@@ -66,4 +97,17 @@ export function toggleActivityStatus(id: string, currentStatus: string) {
 // 4. Xóa công việc
 export function deleteActivity(id: string) {
   db.runSync('DELETE FROM activities WHERE id = ?', [id]);
+}
+
+// 5. Automation: Tự động đánh dấu hoàn thành các sự kiện đã qua (dựa trên start_date)
+export function autoCompletePastActivities(todayStr: string) {
+  // Lấy các sự kiện có start_date < today (bỏ qua những cái chưa có start_date)
+  db.runSync(
+    `UPDATE activities 
+     SET status = 'hoàn thành' 
+     WHERE start_date IS NOT NULL 
+       AND start_date < ? 
+       AND status != 'hoàn thành'`,
+    [todayStr]
+  );
 }

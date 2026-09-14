@@ -1,17 +1,19 @@
 import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView, Modal } from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
-import { useState, useCallback } from 'react';
+import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useState, useCallback, useEffect } from 'react';
 import { useUserStore } from '../src/store';
-import { addActivity, AddActivityData } from '../src/database/activities';
+import { addActivity, AddActivityData, getActivityById, updateActivity } from '../src/database/activities';
 import { Category, getCategories, addCategory, deleteCategory } from '../src/database/categories';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function AddActivity() {
   const router = useRouter();
+  const { id, initialCategory } = useLocalSearchParams<{ id: string, initialCategory?: string }>();
+  const isEditing = !!id;
   const { user } = useUserStore();
 
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('');
+  const [category, setCategory] = useState(initialCategory || '');
   const [priority, setPriority] = useState('trung bình');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
@@ -38,6 +40,22 @@ export default function AddActivity() {
       }
     }, [user])
   );
+
+  // Load chi tiết nếu đang edit
+  useEffect(() => {
+    if (isEditing && id) {
+      const activity = getActivityById(id);
+      if (activity) {
+        setTitle(activity.title);
+        setCategory(activity.category || '');
+        setPriority(activity.priority);
+        setLocation(activity.location || '');
+        setNotes(activity.notes || '');
+        if (activity.start_date) setStartDate(new Date(activity.start_date));
+        if (activity.deadline) setDeadline(new Date(activity.deadline));
+      }
+    }
+  }, [id, isEditing]);
 
   const handleAddCategory = () => {
     if (!newCatName.trim() || !user) return;
@@ -79,7 +97,11 @@ export default function AddActivity() {
     };
 
     try {
-      addActivity(data);
+      if (isEditing && id) {
+        updateActivity(id, data);
+      } else {
+        addActivity(data);
+      }
       router.back();
     } catch (e) {
       console.error(e);
@@ -102,7 +124,7 @@ export default function AddActivity() {
   return (
     <ScrollView className="flex-1 bg-notion-bg p-4 pt-10">
       <View className="flex-row justify-between items-center mb-6">
-        <Text className="text-xl font-mono-bold text-notion-text">Thêm Chi Tiết</Text>
+        <Text className="text-xl font-mono-bold text-notion-text">{isEditing ? 'Chi Tiết Công Việc' : 'Thêm Công Việc Mới'}</Text>
         <TouchableOpacity onPress={() => router.back()}>
           <Text className="text-notion-muted font-mono">Hủy</Text>
         </TouchableOpacity>

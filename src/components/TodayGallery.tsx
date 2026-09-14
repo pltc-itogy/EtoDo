@@ -1,4 +1,5 @@
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Activity, toggleActivityStatus, deleteActivity } from '../database/activities';
 import { Alert } from 'react-native';
 
@@ -8,14 +9,16 @@ interface Props {
 }
 
 export default function TodayGallery({ activities, onRefresh }: Props) {
+  const router = useRouter();
   // Lấy ngày hôm nay theo format cục bộ
   const today = new Date().toLocaleDateString('vi-VN');
   
-  // Lọc các task của ngày hôm nay (hoặc chưa làm mà ko có ngày)
+  // Lọc các task của ngày hôm nay (hoặc chưa làm mà ko có ngày, nhưng trừ danh mục Công việc vì nó hiển thị ở tab Habits rồi)
   const todayActivities = activities.filter(a => {
     const isStartDateToday = a.start_date && new Date(a.start_date).toLocaleDateString('vi-VN') === today;
     const isDeadlineToday = a.deadline && new Date(a.deadline).toLocaleDateString('vi-VN') === today;
-    const noDateButPending = !a.start_date && !a.deadline && a.status !== 'hoàn thành';
+    const isWorkCategory = a.category?.toLowerCase() === 'công việc';
+    const noDateButPending = !a.start_date && !a.deadline && a.status !== 'hoàn thành' && !isWorkCategory;
     return isStartDateToday || isDeadlineToday || noDateButPending;
   });
 
@@ -57,13 +60,16 @@ export default function TodayGallery({ activities, onRefresh }: Props) {
           return (
             <TouchableOpacity 
               key={activity.id}
-              onPress={() => { toggleActivityStatus(activity.id, activity.status); onRefresh(); }}
+              onPress={() => router.push(`/activity/${activity.id}`)}
               className={`w-[48%] bg-notion-card border border-notion-border rounded-lg p-4 mb-4 ${isCompleted ? 'opacity-50' : ''}`}
             >
               <View className="flex-row justify-between items-start mb-2">
-                <View className={`w-5 h-5 border rounded-sm items-center justify-center ${isCompleted ? 'bg-notion-text border-notion-text' : 'border-notion-muted'}`}>
+                <TouchableOpacity 
+                  onPress={() => { toggleActivityStatus(activity.id, activity.status); onRefresh(); }}
+                  className={`w-6 h-6 border rounded-sm items-center justify-center ${isCompleted ? 'bg-notion-text border-notion-text' : 'border-notion-muted'}`}
+                >
                   {isCompleted && <Text className="text-notion-bg text-xs">✓</Text>}
-                </View>
+                </TouchableOpacity>
                 <TouchableOpacity onPress={() => confirmDelete(activity.id)}>
                   <Text className="text-red-500 font-mono-bold">X</Text>
                 </TouchableOpacity>

@@ -5,7 +5,8 @@ import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { supabase } from '../src/services/supabase';
 import { useUserStore } from '../src/store';
-import { initDatabase } from '../src/database';
+import { initDatabase, seedDefaultCategory } from '../src/database';
+import { checkNewDay } from '../src/utils/automation';
 
 // Nhúng file global.css để kích hoạt TailwindCSS trên toàn bộ ứng dụng
 // @ts-ignore
@@ -48,12 +49,17 @@ export default function Layout() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Xử lý ẩn màn hình chờ
+  // Xử lý ẩn màn hình chờ và chạy Tự động hóa
   useEffect(() => {
     if (fontsLoaded && isAuthInitialized) {
       SplashScreen.hideAsync();
+      
+      // Nếu đã đăng nhập thì check chạy Cron ngày mới
+      if (user) {
+        checkNewDay();
+      }
     }
-  }, [fontsLoaded, isAuthInitialized]);
+  }, [fontsLoaded, isAuthInitialized, user]);
 
   // Logic tự động điều hướng (Route Protection)
   useEffect(() => {
@@ -65,7 +71,8 @@ export default function Layout() {
       // Chưa đăng nhập -> Trục xuất ra trang Login
       router.replace('/login');
     } else if (user && inAuthGroup) {
-      // Đã đăng nhập -> Đẩy vào trang chính
+      // Đã đăng nhập -> Tạo danh mục mặc định (nếu chưa có) và Đẩy vào trang chính
+      seedDefaultCategory();
       router.replace('/(tabs)');
     }
   }, [user, isAuthInitialized, segments]);
@@ -84,6 +91,27 @@ export default function Layout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="login" />
         <Stack.Screen name="add-activity" options={{ presentation: 'modal' }} />
+        <Stack.Screen 
+          name="activity/[id]" 
+          options={{ 
+            presentation: 'transparentModal', 
+            animation: 'fade', 
+            contentStyle: { backgroundColor: 'transparent' } 
+          }} 
+        />
+        
+        {/* ENGLISH ROUTES */}
+        <Stack.Screen name="add-english" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="review-english" options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="all-flashcards" options={{ presentation: 'modal' }} />
+        <Stack.Screen 
+          name="english/[id]" 
+          options={{ 
+            presentation: 'transparentModal', 
+            animation: 'fade', 
+            contentStyle: { backgroundColor: 'transparent' } 
+          }} 
+        />
       </Stack>
     </View>
   );
