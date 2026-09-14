@@ -1,73 +1,162 @@
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { Activity, getActivities } from '../../src/database/activities';
-
+import { useState, useCallback } from 'react';
+import { getHabitsWithTodayLog, toggleHabitLog, HabitWithStreak } from '../../src/database/habits';
+import { getActivities, toggleActivityStatus, Activity } from '../../src/database/activities';
 import TodayGallery from '../../src/components/TodayGallery';
-import WeekBoard from '../../src/components/WeekBoard';
-import CalendarSchedule from '../../src/components/CalendarSchedule';
-import AllList from '../../src/components/AllList';
 
-export default function Dashboard() {
+export default function HomeTab() {
   const router = useRouter();
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [currentView, setCurrentView] = useState<'today' | 'week' | 'calendar' | 'all'>('today');
-
-  const loadData = useCallback(() => {
-    const data = getActivities();
-    setActivities(data);
-  }, []);
+  const [habits, setHabits] = useState<HabitWithStreak[]>([]);
+  const [tasks, setTasks] = useState<Activity[]>([]);
+  const [allActivities, setAllActivities] = useState<Activity[]>([]);
 
   useFocusEffect(
     useCallback(() => {
       loadData();
-    }, [loadData])
+    }, [])
   );
 
-  const views = [
-    { id: 'today', label: 'Hôm nay' },
-    { id: 'week', label: '7 Ngày tới' },
-    { id: 'calendar', label: 'Lịch trình 📅' },
-    { id: 'all', label: 'Tất cả 📋' },
-  ];
+  const loadData = () => {
+    // 1. Load Habits
+    const todayStr = new Date().toISOString().split('T')[0];
+    const habitsData = getHabitsWithTodayLog(todayStr);
+    setHabits(habitsData);
+
+    // 2. Load All Activities (cho TodayGallery)
+    const acts = getActivities();
+    setAllActivities(acts);
+
+    // 3. Load Priority Tasks
+    let priorityTasks = acts.filter(
+      a => a.category?.toLowerCase() === 'công việc' && a.status !== 'hoàn thành'
+    );
+
+    const priorityWeight: Record<string, number> = { 'cao': 3, 'trung bình': 2, 'thấp': 1 };
+    priorityTasks.sort((a, b) => {
+      const wA = priorityWeight[a.priority?.toLowerCase()] || 0;
+      const wB = priorityWeight[b.priority?.toLowerCase()] || 0;
+      return wB - wA;
+    });
+
+    setTasks(priorityTasks);
+  };
+
+  const handleToggleHabit = (habitId: string, currentStatus: boolean) => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    toggleHabitLog(habitId, todayStr, !currentStatus);
+    loadData();
+  };
+
+  const handleToggleTask = (taskId: string, currentStatus: string) => {
+    toggleActivityStatus(taskId, currentStatus);
+    loadData();
+  };
+
+  const getPriorityColor = (priority?: string) => {
+    const p = priority?.toLowerCase();
+    if (p === 'cao') return 'border-red-500';
+    if (p === 'trung bình') return 'border-yellow-500';
+    if (p === 'thấp') return 'border-green-500';
+    return 'border-notion-border';
+  };
 
   return (
     <View className="flex-1 bg-notion-bg">
-      {/* Header */}
-      <View className="flex-row justify-between items-center p-4">
-        <Text className="text-2xl font-mono-bold text-notion-text">Activities</Text>
-        <TouchableOpacity 
-          onPress={() => router.push('/add-activity')}
-          className="bg-notion-text px-3 py-1 rounded"
-        >
-          <Text className="text-notion-bg font-mono-bold text-lg">+</Text>
-        </TouchableOpacity>
-      </View>
+      <ScrollView className="flex-1 p-4 pt-10" showsVerticalScrollIndicator={false}>
+        
+        {/* --- PHẦN 1: THÓI QUEN --- */}
+        <View className="flex-row justify-between items-center mb-6 mt-2">
+          <Text className="text-xl font-mono-bold text-notion-text">Công việc hằng ngày</Text>
+          <TouchableOpacity onPress={() => router.push('/add-habit')}>
+            <Text className="text-notion-text font-mono-bold">+ Thêm</Text>
+          </TouchableOpacity>
+        </View>
 
-      {/* View Selector (Tabs) chuẩn Notion */}
-      <View className="border-b border-notion-border pb-2 px-4">
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
-          {views.map((v) => (
-            <TouchableOpacity 
-              key={v.id}
-              onPress={() => setCurrentView(v.id as any)}
-              className={`mr-3 px-3 py-1.5 rounded ${currentView === v.id ? 'bg-notion-card border border-notion-border' : ''}`}
-            >
-              <Text className={`font-mono text-sm ${currentView === v.id ? 'text-notion-text font-mono-bold' : 'text-notion-muted'}`}>
-                {v.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
+        {habits.length === 0 ? (
+          <Text className="text-notion-muted font-mono italic text-center mb-6">
+            Bạn chưa có thói quen nào.
+          </Text>
+        ) : (
+          <View className="flex-row flex-wrap justify-between mb-8">
+            {habits.map(h => (
+              <TouchableOpacity 
+                key={h.id} 
+                onPress={() => handleToggleHabit(h.id, h.is_completed_today)}
+                className="bg-notion-card border border-notion-border rounded-lg p-4 w-[48%] mb-4 items-center"
+              >
+                <Text className="text-3xl mb-2">{h.icon || '🎯'}</Text>
+                <Text className="text-notion-text font-mono-bold text-center mb-2" numberOfLines={1}>
+                  {h.name}
+                </Text>
+                <View className="flex-row items-center gap-2">
+                  <Text className="text-xs text-orange-400 font-mono-bold">🔥 {h.streak}</Text>
+                  <View className={`w-5 h-5 rounded-sm border ${h.is_completed_today ? 'bg-notion-text border-notion-text' : 'border-notion-muted'} items-center justify-center`}>
+                    {h.is_completed_today && <Text className="text-notion-bg text-xs">✓</Text>}
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
-      {/* Vùng hiển thị Layout tương ứng */}
-      <View className="flex-1">
-        {currentView === 'today' && <TodayGallery activities={activities} onRefresh={loadData} />}
-        {currentView === 'week' && <WeekBoard activities={activities} onRefresh={loadData} />}
-        {currentView === 'calendar' && <CalendarSchedule activities={activities} onRefresh={loadData} />}
-        {currentView === 'all' && <AllList activities={activities} onRefresh={loadData} />}
-      </View>
+        {/* --- PHẦN 2: HOẠT ĐỘNG HÔM NAY (Today Gallery) --- */}
+        <View className="mb-2 mt-4">
+          <Text className="text-xl font-mono-bold text-notion-text">Hoạt động hôm nay</Text>
+        </View>
+        <View className="-mx-4 mb-8">
+          <TodayGallery activities={allActivities} onRefresh={loadData} />
+        </View>
+
+        {/* --- PHẦN 3: PRIORITY TASKS --- */}
+        <View className="flex-row justify-between items-center mb-4">
+          <Text className="text-xl font-mono-bold text-notion-text">Công việc ưu tiên</Text>
+          <TouchableOpacity onPress={() => router.push('/add-activity?initialCategory=Công việc')}>
+            <Text className="text-notion-text font-mono-bold">+ Task</Text>
+          </TouchableOpacity>
+        </View>
+
+        {tasks.length === 0 ? (
+          <Text className="text-notion-muted font-mono italic text-center mt-4">
+            Không có công việc ưu tiên nào cần làm.
+          </Text>
+        ) : (
+          ['cao', 'trung bình', 'thấp'].map(level => {
+            const levelTasks = tasks.filter(t => t.priority === level);
+            if (levelTasks.length === 0) return null;
+            
+            return (
+              <View key={level} className="mb-2">
+                <Text className={`font-mono-bold text-xs uppercase mb-2 ${
+                  level === 'cao' ? 'text-red-400' : level === 'trung bình' ? 'text-yellow-400' : 'text-green-400'
+                }`}>MỨC ĐỘ: {level}</Text>
+                {levelTasks.map(t => (
+                  <TouchableOpacity
+                    key={t.id}
+                    onPress={() => router.push(`/activity/${t.id}`)}
+                    className={`bg-notion-card border-l-4 ${getPriorityColor(t.priority)} border-y border-r border-y-notion-border border-r-notion-border rounded-md p-4 mb-3 flex-row items-center justify-between`}
+                  >
+                    <View className="flex-1 mr-3">
+                      <Text className="font-mono-bold text-notion-text text-base" numberOfLines={2}>
+                        {t.title}
+                      </Text>
+                    </View>
+                    
+                    <TouchableOpacity 
+                      onPress={() => handleToggleTask(t.id, t.status)}
+                      className="w-6 h-6 rounded-sm border border-notion-muted items-center justify-center"
+                    >
+                      {t.status === 'hoàn thành' && <Text className="text-notion-muted text-xs">✓</Text>}
+                    </TouchableOpacity>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            );
+          })
+        )}
+
+        <View className="h-20" />
+      </ScrollView>
     </View>
   );
 }

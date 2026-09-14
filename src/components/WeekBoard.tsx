@@ -1,4 +1,5 @@
 import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Activity, toggleActivityStatus, deleteActivity } from '../database/activities';
 
 interface Props {
@@ -7,6 +8,8 @@ interface Props {
 }
 
 export default function WeekBoard({ activities, onRefresh }: Props) {
+  const router = useRouter();
+  
   // Sinh ra 7 ngày tới (bắt đầu từ ngày mai)
   const next7Days: Date[] = [];
   const todayDate = new Date();
@@ -75,12 +78,20 @@ export default function WeekBoard({ activities, onRefresh }: Props) {
                   return (
                     <TouchableOpacity 
                       key={activity.id}
-                      onPress={() => { toggleActivityStatus(activity.id, activity.status); onRefresh(); }}
-                      className={`bg-notion-bg border border-notion-border rounded p-3 mb-3 ${isCompleted ? 'opacity-50' : ''}`}
+                      onPress={() => router.push(`/activity/${activity.id}`)}
+                      className={`bg-notion-bg border border-notion-border rounded p-3 mb-3 flex-row items-start ${isCompleted ? 'opacity-50' : ''}`}
                     >
-                      <View className="flex-row justify-between items-start mb-1">
-                        <View className="flex-1">
-                          <Text className={`font-mono-bold text-sm ${isCompleted ? 'text-notion-muted line-through' : 'text-notion-text'}`}>
+                      <TouchableOpacity 
+                        onPress={() => { toggleActivityStatus(activity.id, activity.status); onRefresh(); }}
+                        className={`w-5 h-5 border rounded-sm mr-3 mt-0.5 items-center justify-center ${isCompleted ? 'bg-notion-text border-notion-text' : 'border-notion-muted'}`}
+                      >
+                        {isCompleted && <Text className="text-notion-bg text-xs">✓</Text>}
+                      </TouchableOpacity>
+                      
+                      <View className="flex-1">
+                        <View className="flex-row justify-between items-start mb-1">
+                          <View className="flex-1">
+                            <Text className={`font-mono-bold text-sm ${isCompleted ? 'text-notion-muted line-through' : 'text-notion-text'}`}>
                             {activity.title}
                           </Text>
                           {(activity.start_date || activity.deadline) && (
@@ -98,6 +109,7 @@ export default function WeekBoard({ activities, onRefresh }: Props) {
                       {activity.category && (
                         <Text className="font-mono text-[10px] text-notion-muted">{activity.category}</Text>
                       )}
+                      </View>
                     </TouchableOpacity>
                   );
                 })

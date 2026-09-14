@@ -36,10 +36,15 @@ export default function TodayGallery({ activities, onRefresh }: Props) {
     ]);
   };
 
-  const prioColors: Record<string, string> = {
-    'cao': 'bg-red-900/30 border-red-500 text-red-400',
-    'trung bình': 'bg-yellow-900/30 border-yellow-500 text-yellow-400',
-    'thấp': 'bg-green-900/30 border-green-500 text-green-400'
+  const prioBgColors: Record<string, string> = {
+    'cao': 'bg-red-900/30 border-red-500',
+    'trung bình': 'bg-yellow-900/30 border-yellow-500',
+    'thấp': 'bg-green-900/30 border-green-500'
+  };
+  const prioTextColors: Record<string, string> = {
+    'cao': 'text-red-400',
+    'trung bình': 'text-yellow-400',
+    'thấp': 'text-green-400'
   };
 
   if (todayActivities.length === 0) {
@@ -55,7 +60,8 @@ export default function TodayGallery({ activities, onRefresh }: Props) {
       <View className="flex-row flex-wrap justify-between">
         {todayActivities.map(activity => {
           const isCompleted = activity.status === 'hoàn thành';
-          const pColor = prioColors[activity.priority] || prioColors['trung bình'];
+          const pBg = prioBgColors[activity.priority] || prioBgColors['trung bình'];
+          const pText = prioTextColors[activity.priority] || prioTextColors['trung bình'];
 
           return (
             <TouchableOpacity 
@@ -89,8 +95,8 @@ export default function TodayGallery({ activities, onRefresh }: Props) {
               )}
 
               <View className="flex-row flex-wrap gap-1">
-                <View className={`px-2 py-0.5 rounded border ${pColor}`}>
-                  <Text className="text-[10px] font-mono">{activity.priority.toUpperCase()}</Text>
+                <View className={`px-2 py-0.5 rounded border ${pBg}`}>
+                  <Text className={`text-[10px] font-mono ${pText}`}>{activity.priority.toUpperCase()}</Text>
                 </View>
                 {activity.category && (
                   <View className="px-2 py-0.5 rounded border border-notion-border bg-notion-bg">

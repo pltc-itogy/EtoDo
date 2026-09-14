@@ -25,8 +25,7 @@ export default function JournalTab() {
 
   return (
     <View className="flex-1 bg-notion-bg">
-      <View className="flex-row justify-between items-center p-4 pt-10 border-b border-notion-border">
-        <Text className="text-xl font-mono-bold text-notion-text">Nhật Ký</Text>
+      <View className="flex-row justify-end items-center p-4 pt-4 border-b border-notion-border">
         <TouchableOpacity onPress={() => router.push('/add-journal')}>
           <Text className="text-notion-text font-mono-bold">+ Viết</Text>
         </TouchableOpacity>
