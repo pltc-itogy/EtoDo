@@ -8,6 +8,7 @@ module.exports = {
   ],
   // presets: Nạp cấu hình mặc định của NativeWind để tương thích với React Native
   presets: [require("nativewind/preset")],
+  darkMode: "class",
   theme: {
     extend: {
       colors: {
