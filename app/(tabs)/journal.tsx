@@ -56,6 +56,7 @@ export default function JournalTab() {
                   />
                 )}
                 
+                
                 {/* Thông tin ngày tháng bên dưới ảnh */}
                 <View className="p-4 flex-row justify-between items-center">
                   <View>

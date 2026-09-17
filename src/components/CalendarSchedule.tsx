@@ -60,6 +60,12 @@ export default function CalendarSchedule({ activities, onRefresh }: Props) {
     ]);
   };
 
+  const formatTimeCalendar = (dateStr: string) => {
+    const d = new Date(dateStr);
+    if (d.getHours() === 0 && d.getMinutes() === 0) return 'Cả ngày';
+    return d.toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
+  };
+
   return (
     <View className="flex-1 bg-notion-bg">
       <Calendar
@@ -134,9 +140,9 @@ export default function CalendarSchedule({ activities, onRefresh }: Props) {
                   </Text>
                   {(activity.start_date || activity.deadline) && (
                     <Text className="text-[10px] font-mono text-notion-muted mt-1">
-                      ⏰ {activity.start_date ? new Date(activity.start_date).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'}) : ''}
+                      ⏰ {activity.start_date ? formatTimeCalendar(activity.start_date) : ''}
                       {activity.start_date && activity.deadline ? ' - ' : ''}
-                      {activity.deadline ? new Date(activity.deadline).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'}) : ''}
+                      {activity.deadline ? formatTimeCalendar(activity.deadline) : ''}
                     </Text>
                   )}
                 </View>

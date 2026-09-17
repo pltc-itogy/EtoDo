@@ -1,4 +1,4 @@
-import { db } from './connection';
+import { db, isWeb, getLocalTable, saveLocalTable } from './connection';
 import { generateUUID } from '../utils/uuid';
 
 export interface EnglishNote {
@@ -50,6 +50,27 @@ export function addEnglishNote(data: AddEnglishData) {
   // Mặc định cho flashcard mới là sẽ ôn ngay lập tức (ngày hôm nay)
   const nextReviewDate = data.type === 'flashcard' ? now : null;
 
+  const newNote: EnglishNote = {
+    id,
+    user_id: data.userId,
+    type: data.type,
+    title_or_word: data.titleOrWord,
+    content_or_meaning: data.contentOrMeaning,
+    example_sentence: data.exampleSentence,
+    next_review_date: nextReviewDate || undefined,
+    easiness_factor: 2.5,
+    interval: 0,
+    repetitions: 0,
+    created_at: now
+  };
+
+  if (isWeb) {
+    const table = getLocalTable<EnglishNote>('english_notes');
+    table.push(newNote);
+    saveLocalTable('english_notes', table);
+    return;
+  }
+
   db.runSync(
     `INSERT INTO english_notes 
       (id, user_id, type, title_or_word, content_or_meaning, example_sentence, next_review_date, created_at)
@@ -69,6 +90,11 @@ export function addEnglishNote(data: AddEnglishData) {
 
 // 3. Lấy danh sách Tips
 export function getEnglishTips(): EnglishNote[] {
+  if (isWeb) {
+    return getLocalTable<EnglishNote>('english_notes')
+      .filter(x => x.type === 'tip')
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
   return db.getAllSync<EnglishNote>(
     "SELECT * FROM english_notes WHERE type = 'tip' ORDER BY created_at DESC"
   );
@@ -76,6 +102,11 @@ export function getEnglishTips(): EnglishNote[] {
 
 // Lấy danh sách toàn bộ Flashcard
 export function getAllFlashcards(): EnglishNote[] {
+  if (isWeb) {
+    return getLocalTable<EnglishNote>('english_notes')
+      .filter(x => x.type === 'flashcard')
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
   return db.getAllSync<EnglishNote>(
     "SELECT * FROM english_notes WHERE type = 'flashcard' ORDER BY created_at DESC"
   );
@@ -83,11 +114,27 @@ export function getAllFlashcards(): EnglishNote[] {
 
 // 4. Lấy một Note theo ID
 export function getEnglishNoteById(id: string): EnglishNote | null {
+  if (isWeb) {
+    const table = getLocalTable<EnglishNote>('english_notes');
+    return table.find(x => x.id === id) || null;
+  }
   return db.getFirstSync<EnglishNote>("SELECT * FROM english_notes WHERE id = ?", [id]);
 }
 
 // 5. Cập nhật một Note
 export function updateEnglishNote(id: string, data: AddEnglishData) {
+  if (isWeb) {
+    const table = getLocalTable<EnglishNote>('english_notes');
+    const idx = table.findIndex(x => x.id === id);
+    if (idx >= 0) {
+      table[idx].title_or_word = data.titleOrWord;
+      table[idx].content_or_meaning = data.contentOrMeaning || undefined;
+      table[idx].example_sentence = data.exampleSentence || undefined;
+      saveLocalTable('english_notes', table);
+    }
+    return;
+  }
+
   db.runSync(
     `UPDATE english_notes SET 
       title_or_word = ?, 
@@ -100,6 +147,12 @@ export function updateEnglishNote(id: string, data: AddEnglishData) {
 
 // 6. Xóa Note
 export function deleteEnglishNote(id: string) {
+  if (isWeb) {
+    let table = getLocalTable<EnglishNote>('english_notes');
+    table = table.filter(x => x.id !== id);
+    saveLocalTable('english_notes', table);
+    return;
+  }
   db.runSync("DELETE FROM english_notes WHERE id = ?", [id]);
 }
 
@@ -110,6 +163,10 @@ export function deleteEnglishNote(id: string) {
 // Lấy số lượng thẻ cần ôn tập hôm nay
 export function getDueFlashcardsCount(): number {
   const todayStr = new Date().toISOString();
+  if (isWeb) {
+    const table = getLocalTable<EnglishNote>('english_notes');
+    return table.filter(x => x.type === 'flashcard' && x.next_review_date && x.next_review_date <= todayStr).length;
+  }
   const row = db.getFirstSync<{count: number}>(
     "SELECT COUNT(*) as count FROM english_notes WHERE type = 'flashcard' AND next_review_date <= ?",
     [todayStr]
@@ -120,6 +177,16 @@ export function getDueFlashcardsCount(): number {
 // Lấy danh sách N thẻ flashcard ngẫu nhiên cần ôn tập
 export function getDueFlashcards(limit: number): EnglishNote[] {
   const todayStr = new Date().toISOString();
+  if (isWeb) {
+    const table = getLocalTable<EnglishNote>('english_notes');
+    const due = table.filter(x => x.type === 'flashcard' && x.next_review_date && x.next_review_date <= todayStr);
+    // Shuffle
+    for (let i = due.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [due[i], due[j]] = [due[j], due[i]];
+    }
+    return due.slice(0, limit);
+  }
   // SQL RANDOM() trong SQLite trả về thẻ ngẫu nhiên
   return db.getAllSync<EnglishNote>(
     "SELECT * FROM english_notes WHERE type = 'flashcard' AND next_review_date <= ? ORDER BY RANDOM() LIMIT ?",
@@ -160,6 +227,19 @@ export function reviewFlashcard(id: string, quality: number) {
   const nextDate = new Date();
   nextDate.setDate(nextDate.getDate() + interval);
 
+  if (isWeb) {
+    const table = getLocalTable<EnglishNote>('english_notes');
+    const idx = table.findIndex(x => x.id === id);
+    if (idx >= 0) {
+      table[idx].easiness_factor = easiness_factor;
+      table[idx].interval = interval;
+      table[idx].repetitions = repetitions;
+      table[idx].next_review_date = nextDate.toISOString();
+      saveLocalTable('english_notes', table);
+    }
+    return;
+  }
+
   db.runSync(
     `UPDATE english_notes SET 
       easiness_factor = ?, 
@@ -173,10 +253,20 @@ export function reviewFlashcard(id: string, quality: number) {
 
 // Dùng cho hàm Sync
 export function getAllEnglishNotes(): EnglishNote[] {
+  if (isWeb) return getLocalTable<EnglishNote>('english_notes');
   return db.getAllSync<EnglishNote>("SELECT * FROM english_notes");
 }
 
 export function upsertEnglishNoteLocal(note: EnglishNote) {
+  if (isWeb) {
+    const table = getLocalTable<EnglishNote>('english_notes');
+    const idx = table.findIndex(x => x.id === note.id);
+    if (idx >= 0) table[idx] = note;
+    else table.push(note);
+    saveLocalTable('english_notes', table);
+    return;
+  }
+
   db.runSync(
     `INSERT OR REPLACE INTO english_notes 
       (id, user_id, type, title_or_word, content_or_meaning, example_sentence, next_review_date, easiness_factor, interval, repetitions, created_at)

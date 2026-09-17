@@ -1,6 +1,7 @@
-import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Activity, toggleActivityStatus, deleteActivity } from '../database/activities';
+import { useRef } from 'react';
 
 interface Props {
   activities: Activity[];
@@ -9,6 +10,7 @@ interface Props {
 
 export default function WeekBoard({ activities, onRefresh }: Props) {
   const router = useRouter();
+  const scrollRef = useRef<ScrollView>(null);
   
   // Sinh ra 7 ngày tới (bắt đầu từ ngày mai)
   const next7Days: Date[] = [];
@@ -54,8 +56,32 @@ export default function WeekBoard({ activities, onRefresh }: Props) {
     return days[d.getDay()];
   };
 
+  const formatTimeWeekBoard = (dateStr: string) => {
+    const d = new Date(dateStr);
+    if (d.getHours() === 0 && d.getMinutes() === 0) return 'Cả ngày';
+    return d.toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
+  };
+
+  const handleWheel = (e: any) => {
+    if (Platform.OS === 'web' && scrollRef.current) {
+      const node = (scrollRef.current as any).getScrollableNode();
+      if (node) {
+        node.scrollLeft += e.deltaY;
+      }
+    }
+  };
+
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-1 p-4">
+    <View 
+      className="flex-1 p-4" 
+      {...(Platform.OS === 'web' ? { onWheel: handleWheel } as any : {})}
+    >
+      <ScrollView 
+        ref={scrollRef}
+        horizontal 
+        showsHorizontalScrollIndicator={false} 
+        className="flex-1"
+      >
       {next7Days.map((d, index) => {
         const dStr = d.toLocaleDateString('vi-VN');
         const dayActivities = grouped[dStr];
@@ -96,9 +122,9 @@ export default function WeekBoard({ activities, onRefresh }: Props) {
                           </Text>
                           {(activity.start_date || activity.deadline) && (
                             <Text className="text-[10px] font-mono text-notion-muted mt-1">
-                              ⏰ {activity.start_date ? new Date(activity.start_date).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'}) : ''}
+                              ⏰ {activity.start_date ? formatTimeWeekBoard(activity.start_date) : ''}
                               {activity.start_date && activity.deadline ? ' - ' : ''}
-                              {activity.deadline ? new Date(activity.deadline).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'}) : ''}
+                              {activity.deadline ? formatTimeWeekBoard(activity.deadline) : ''}
                             </Text>
                           )}
                         </View>
@@ -118,6 +144,7 @@ export default function WeekBoard({ activities, onRefresh }: Props) {
           </View>
         );
       })}
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }

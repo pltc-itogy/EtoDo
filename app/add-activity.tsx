@@ -24,6 +24,9 @@ export default function AddActivity() {
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showDeadlinePicker, setShowDeadlinePicker] = useState(false);
   
+  const [hasStartTime, setHasStartTime] = useState(false);
+  const [hasDeadlineTime, setHasDeadlineTime] = useState(false);
+  
   // States cho Time Picker
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
   const [showDeadlineTimePicker, setShowDeadlineTimePicker] = useState(false);
@@ -51,8 +54,16 @@ export default function AddActivity() {
         setPriority(activity.priority);
         setLocation(activity.location || '');
         setNotes(activity.notes || '');
-        if (activity.start_date) setStartDate(new Date(activity.start_date));
-        if (activity.deadline) setDeadline(new Date(activity.deadline));
+        if (activity.start_date) {
+          const d = new Date(activity.start_date);
+          setStartDate(d);
+          if (d.getHours() !== 0 || d.getMinutes() !== 0) setHasStartTime(true);
+        }
+        if (activity.deadline) {
+          const d = new Date(activity.deadline);
+          setDeadline(d);
+          if (d.getHours() !== 0 || d.getMinutes() !== 0) setHasDeadlineTime(true);
+        }
       }
     }
   }, [id, isEditing]);
@@ -85,6 +96,16 @@ export default function AddActivity() {
     if (!title.trim()) return Alert.alert('Lỗi', 'Vui lòng nhập tên công việc');
     if (!user) return Alert.alert('Lỗi', 'Bạn chưa đăng nhập');
 
+    let finalStart = startDate ? new Date(startDate) : undefined;
+    if (finalStart && !hasStartTime) {
+      finalStart.setHours(0, 0, 0, 0);
+    }
+    
+    let finalDeadline = deadline ? new Date(deadline) : undefined;
+    if (finalDeadline && !hasDeadlineTime) {
+      finalDeadline.setHours(0, 0, 0, 0);
+    }
+
     const data: AddActivityData = {
       userId: user.id,
       title: title.trim(),
@@ -92,8 +113,8 @@ export default function AddActivity() {
       priority,
       location: location.trim() || undefined,
       notes: notes.trim() || undefined,
-      startDate: startDate ? startDate.toISOString() : undefined,
-      deadline: deadline ? deadline.toISOString() : undefined,
+      startDate: finalStart ? finalStart.toISOString() : undefined,
+      deadline: finalDeadline ? finalDeadline.toISOString() : undefined,
     };
 
     try {
@@ -116,8 +137,8 @@ export default function AddActivity() {
   ];
 
   const formatDate = (date: Date | null) => date ? date.toLocaleDateString('vi-VN') : 'Chọn ngày';
-  const formatTime = (date: Date | null) => {
-    if (!date) return 'Chọn giờ';
+  const formatTime = (date: Date | null, hasTime: boolean) => {
+    if (!date || !hasTime) return 'Chọn giờ (Tùy chọn)';
     return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
   };
 
@@ -192,8 +213,13 @@ export default function AddActivity() {
             <TouchableOpacity onPress={() => setShowStartPicker(true)} className="flex-1 bg-notion-card border border-notion-border p-3 rounded-md">
               <Text className="text-notion-text font-mono text-center text-xs">{formatDate(startDate)}</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setShowStartTimePicker(true)} className="flex-1 bg-notion-card border border-notion-border p-3 rounded-md">
-              <Text className="text-notion-text font-mono text-center text-xs">{formatTime(startDate)}</Text>
+            <TouchableOpacity onPress={() => setShowStartTimePicker(true)} className="flex-2 bg-notion-card border border-notion-border p-3 rounded-md flex-row justify-between items-center">
+              <Text className="text-notion-text font-mono text-center text-xs">{formatTime(startDate, hasStartTime)}</Text>
+              {hasStartTime && (
+                <TouchableOpacity onPress={() => setHasStartTime(false)} className="ml-2 px-1">
+                  <Text className="text-notion-muted text-xs">X</Text>
+                </TouchableOpacity>
+              )}
             </TouchableOpacity>
           </View>
           
@@ -224,6 +250,7 @@ export default function AddActivity() {
                   const newD = startDate || new Date();
                   newD.setHours(selectedDate.getHours(), selectedDate.getMinutes());
                   setStartDate(new Date(newD));
+                  setHasStartTime(true);
                 }
               }}
               onDismiss={() => setShowStartTimePicker(false)}
@@ -237,8 +264,13 @@ export default function AddActivity() {
             <TouchableOpacity onPress={() => setShowDeadlinePicker(true)} className="flex-1 bg-notion-card border border-notion-border p-3 rounded-md">
               <Text className="text-notion-text font-mono text-center text-xs">{formatDate(deadline)}</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setShowDeadlineTimePicker(true)} className="flex-1 bg-notion-card border border-notion-border p-3 rounded-md">
-              <Text className="text-notion-text font-mono text-center text-xs">{formatTime(deadline)}</Text>
+            <TouchableOpacity onPress={() => setShowDeadlineTimePicker(true)} className="flex-2 bg-notion-card border border-notion-border p-3 rounded-md flex-row justify-between items-center">
+              <Text className="text-notion-text font-mono text-center text-xs">{formatTime(deadline, hasDeadlineTime)}</Text>
+              {hasDeadlineTime && (
+                <TouchableOpacity onPress={() => setHasDeadlineTime(false)} className="ml-2 px-1">
+                  <Text className="text-notion-muted text-xs">X</Text>
+                </TouchableOpacity>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -269,6 +301,7 @@ export default function AddActivity() {
                   const newD = deadline || new Date();
                   newD.setHours(selectedDate.getHours(), selectedDate.getMinutes());
                   setDeadline(new Date(newD));
+                  setHasDeadlineTime(true);
                 }
               }}
               onDismiss={() => setShowDeadlineTimePicker(false)}

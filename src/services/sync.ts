@@ -1,6 +1,6 @@
 import { db } from '../database';
 import { supabase } from './supabase';
-import { getActivities } from '../database/activities';
+import { getActivities, upsertActivityLocal } from '../database/activities';
 import { getCategories, upsertCategoryLocal } from '../database/categories';
 import { getHabits, getAllHabitLogs, upsertHabitLocal, upsertHabitLogLocal } from '../database/habits';
 import { getJournals, upsertJournalLocal } from '../database/journals';
@@ -26,11 +26,7 @@ export async function sync(silent = false) {
     if (cloudActivities) {
       db.execSync('BEGIN TRANSACTION;');
       for (const act of cloudActivities) {
-        db.runSync(
-          `INSERT OR REPLACE INTO activities (id, user_id, title, start_date, deadline, category, priority, status, location, notes, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [act.id, act.user_id, act.title, act.start_date, act.deadline, act.category, act.priority, act.status, act.location, act.notes, act.created_at]
-        );
+        upsertActivityLocal(act);
       }
       db.execSync('COMMIT;');
     }
@@ -142,19 +138,32 @@ export async function syncJournals() {
     const localJournals = getJournals();
     
     for (const journal of localJournals) {
-      // images lưu dưới dạng chuỗi JSON: '["file://..."]'
-      let imagesArr: string[] = JSON.parse(journal.images || '[]');
+      let imagesArr: string[] = [];
+      try {
+        imagesArr = JSON.parse(journal.images && journal.images.trim() !== '' ? journal.images : '[]');
+      } catch (parseEx) {
+        imagesArr = [];
+      }
       let updatedImagesArr: string[] = [];
 
       for (const uri of imagesArr) {
-        // Nếu ảnh là link nội bộ (chưa upload)
-        if (uri.startsWith('file://')) {
+        // Nếu ảnh là link nội bộ (chưa upload) hoặc là Data URI (từ Web/Electron import)
+        if (uri.startsWith('file://') || uri.startsWith('data:image/')) {
+
           const fileName = `${user.id}/${Date.now()}.jpg`; // Tạo tên file duy nhất theo user_id
           
           try {
-            // Đọc file ảnh cục bộ chuyển thành ArrayBuffer để Supabase dễ hiểu
-            const response = await fetch(uri);
-            const arrayBuffer = await response.arrayBuffer();
+            let arrayBuffer: ArrayBuffer;
+            
+            if (uri.startsWith('data:image/')) {
+              // Web: fetch hỗ trợ đọc Data URI thành ArrayBuffer
+              const response = await fetch(uri);
+              arrayBuffer = await response.arrayBuffer();
+            } else {
+              // Native: fetch hỗ trợ đọc file:// thành ArrayBuffer
+              const response = await fetch(uri);
+              arrayBuffer = await response.arrayBuffer();
+            }
             
             // Upload lên Supabase Storage (bucket 'journals')
             const { error: uploadError } = await supabase.storage
@@ -174,11 +183,13 @@ export async function syncJournals() {
             updatedImagesArr.push(publicUrlData.publicUrl);
 
             // Xóa file local để giải phóng dung lượng (Local DB Cleanup)
-            try {
-              await FileSystem.deleteAsync(uri, { idempotent: true });
-              console.log('Đã xóa ảnh local:', uri);
-            } catch (delEx) {
-              console.log('Lỗi xoá ảnh local:', delEx);
+            if (uri.startsWith('file://')) {
+              try {
+                await FileSystem.deleteAsync(uri, { idempotent: true });
+                console.log('Đã xóa ảnh local:', uri);
+              } catch (delEx) {
+                console.log('Lỗi xoá ảnh local:', delEx);
+              }
             }
           } catch (uploadEx) {
             console.error('Lỗi upload ảnh:', uploadEx);
@@ -191,18 +202,25 @@ export async function syncJournals() {
       }
 
       // Đẩy (Upsert) toàn bộ text và link ảnh mới lên Database Supabase
-      const { error: pushError } = await supabase.from('journals').upsert({
+      const payload = {
         id: journal.id,
-        user_id: journal.user_id,
+        user_id: user.id, // BẮT BUỘC SỬ DỤNG ID CỦA USER ĐANG ĐĂNG NHẬP (TRÁNH LỖI RLS)
         entry_date: journal.entry_date,
         day_sequence: journal.day_sequence,
         content: journal.content,
         mood: journal.mood,
-        images: JSON.stringify(updatedImagesArr), // Lưu thành chuỗi JSON trên DB
+        images: JSON.stringify(updatedImagesArr),
         created_at: journal.created_at,
-      });
+      };
 
-      if (pushError) throw new Error(pushError.message);
+      const { error: pushError } = await supabase.from('journals').upsert(payload);
+
+      if (pushError) {
+        if (typeof window !== 'undefined' && window.alert) {
+          window.alert("Lỗi Supabase: " + JSON.stringify(pushError));
+        }
+        throw new Error(pushError.message);
+      }
 
       // Cập nhật lại SQLite với link ảnh mới (để giải phóng bộ nhớ & tránh upload trùng lần sau)
       if (JSON.stringify(imagesArr) !== JSON.stringify(updatedImagesArr)) {
