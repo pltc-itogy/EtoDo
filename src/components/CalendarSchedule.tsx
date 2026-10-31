@@ -1,4 +1,5 @@
 import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Activity, toggleActivityStatus, deleteActivity } from '../database/activities';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { useState } from 'react';
@@ -19,31 +20,28 @@ interface Props {
 }
 
 export default function CalendarSchedule({ activities, onRefresh }: Props) {
-  // Mặc định chọn ngày hôm nay
-  const [selectedDate, setSelectedDate] = useState(() => {
+  const router = useRouter();
+  const todayString = (() => {
     const today = new Date();
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  });
+  })();
 
-  // Vẽ các chấm báo hiệu ngày có task
-  const markedDates: Record<string, any> = {};
+  // Mặc định chọn ngày hôm nay
+  const [selectedDate, setSelectedDate] = useState(todayString);
+
+  // Đếm số task trong mỗi ngày
+  const markedDates: Record<string, { count: number }> = {};
   activities.forEach(a => {
     const dStr = a.deadline || a.start_date;
     if (dStr) {
       const dateKey = dStr.split('T')[0]; // Lấy phần YYYY-MM-DD
       if (!markedDates[dateKey]) {
-        markedDates[dateKey] = { marked: true, dotColor: '#E6E6E6' };
+        markedDates[dateKey] = { count: 1 };
+      } else {
+        markedDates[dateKey].count += 1;
       }
     }
   });
-
-  // Highlight ngày đang được chọn
-  markedDates[selectedDate] = { 
-    ...markedDates[selectedDate], 
-    selected: true, 
-    selectedColor: '#FFFFFF',
-    selectedTextColor: '#191919'
-  };
 
   // Lọc task tương ứng với ngày đang chọn và sắp xếp theo giờ
   const selectedActivities = activities.filter(a => {
@@ -62,12 +60,39 @@ export default function CalendarSchedule({ activities, onRefresh }: Props) {
     ]);
   };
 
+  const formatTimeCalendar = (dateStr: string) => {
+    const d = new Date(dateStr);
+    if (d.getHours() === 0 && d.getMinutes() === 0) return 'Cả ngày';
+    return d.toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
+  };
+
   return (
     <View className="flex-1 bg-notion-bg">
       <Calendar
         current={selectedDate}
-        onDayPress={(day: any) => setSelectedDate(day.dateString)}
-        markedDates={markedDates}
+        dayComponent={({ date, state }: any) => {
+          const dateStr = date.dateString;
+          const isSelected = dateStr === selectedDate;
+          const isToday = dateStr === todayString;
+          const count = markedDates[dateStr]?.count || 0;
+          
+          return (
+            <TouchableOpacity 
+              onPress={() => setSelectedDate(dateStr)}
+              className={`items-center justify-center w-8 h-8 rounded-full ${isSelected ? (isToday ? 'bg-red-500' : 'bg-notion-text') : ''}`}
+            >
+              <Text className={`font-mono text-base ${isSelected ? (isToday ? 'text-white' : 'text-notion-bg font-mono-bold') : isToday ? 'text-red-500 font-mono-bold' : state === 'disabled' ? 'text-notion-muted' : 'text-notion-text'}`}>
+                {date.day}
+              </Text>
+              
+              {count > 0 && (
+                <View className={`absolute -top-1 -right-1 rounded-full w-4 h-4 items-center justify-center ${isSelected ? 'bg-red-500' : 'bg-notion-text'}`}>
+                  <Text className={`text-[9px] font-mono-bold ${isSelected ? 'text-white' : 'text-notion-bg'}`}>{count}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        }}
         theme={{
           backgroundColor: '#191919',
           calendarBackground: '#191919',
@@ -100,21 +125,24 @@ export default function CalendarSchedule({ activities, onRefresh }: Props) {
             return (
               <TouchableOpacity 
                 key={activity.id}
-                onPress={() => { toggleActivityStatus(activity.id, activity.status); onRefresh(); }}
+                onPress={() => router.push(`/activity/${activity.id}`)}
                 className={`bg-notion-card border border-notion-border rounded p-4 mb-3 flex-row items-center ${isCompleted ? 'opacity-50' : ''}`}
               >
-                <View className={`w-5 h-5 border rounded-sm mr-3 items-center justify-center ${isCompleted ? 'bg-notion-text border-notion-text' : 'border-notion-muted'}`}>
+                <TouchableOpacity 
+                  onPress={() => { toggleActivityStatus(activity.id, activity.status); onRefresh(); }}
+                  className={`w-5 h-5 border rounded-sm mr-3 items-center justify-center ${isCompleted ? 'bg-notion-text border-notion-text' : 'border-notion-muted'}`}
+                >
                   {isCompleted && <Text className="text-notion-bg text-xs">✓</Text>}
-                </View>
+                </TouchableOpacity>
                 <View className="flex-1">
                   <Text className={`font-mono-bold text-base ${isCompleted ? 'text-notion-muted line-through' : 'text-notion-text'}`}>
                     {activity.title}
                   </Text>
                   {(activity.start_date || activity.deadline) && (
                     <Text className="text-[10px] font-mono text-notion-muted mt-1">
-                      ⏰ {activity.start_date ? new Date(activity.start_date).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'}) : ''}
+                      ⏰ {activity.start_date ? formatTimeCalendar(activity.start_date) : ''}
                       {activity.start_date && activity.deadline ? ' - ' : ''}
-                      {activity.deadline ? new Date(activity.deadline).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'}) : ''}
+                      {activity.deadline ? formatTimeCalendar(activity.deadline) : ''}
                     </Text>
                   )}
                 </View>

@@ -72,17 +72,9 @@ export default function EnglishTab() {
         <View className="flex-row justify-between items-center mb-4">
           <Text className="text-xl font-mono-bold text-notion-text">Sổ tay Tips & Ngữ Pháp</Text>
           <TouchableOpacity onPress={() => router.push('/add-english?type=tip')}>
-            <Text className="text-notion-text font-mono-bold">+ Thêm Tip</Text>
+            <Text className="text-notion-text font-mono-bold">+ Thêm</Text>
           </TouchableOpacity>
         </View>
-        
-        {/* Nút thêm flashcard nhanh */}
-        <TouchableOpacity 
-          onPress={() => router.push('/add-english?type=flashcard')}
-          className="mb-4 bg-notion-card border border-notion-border border-dashed py-2 rounded-lg items-center"
-        >
-          <Text className="text-notion-text font-mono">+ Thêm Flashcard mới</Text>
-        </TouchableOpacity>
 
         {tips.length === 0 ? (
           <Text className="text-notion-muted font-mono italic text-center mt-4">

@@ -1,4 +1,5 @@
-import { db } from './connection';
+import { db, isWeb, getLocalTable, saveLocalTable } from './connection';
+import { generateUUID } from '../utils/uuid';
 
 export interface Category {
   id: string;
@@ -29,6 +30,11 @@ export function initCategoriesTable() {
 
 // 2. Lấy danh sách category của 1 user
 export function getCategories(userId: string): Category[] {
+  if (isWeb) {
+    return getLocalTable<Category>('categories')
+      .filter(c => c.user_id === userId)
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  }
   return db.getAllSync<Category>(
     'SELECT * FROM categories WHERE user_id = ? ORDER BY created_at ASC',
     [userId]
@@ -36,32 +42,55 @@ export function getCategories(userId: string): Category[] {
 }
 
 // 3. Thêm mới category
-export function addCategory(data: AddCategoryData): Category {
-  // Sinh id ngẫu nhiên (hoặc uuid)
-  const id = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+export function addCategory(data: { userId: string; name: string; color?: string }): Category {
+  const id = generateUUID();
   const now = new Date().toISOString();
   
-  db.runSync(
-    'INSERT INTO categories (id, user_id, name, color, created_at) VALUES (?, ?, ?, ?, ?)',
-    [id, data.userId, data.name, data.color || null, now]
-  );
-  
-  return {
+  const newCat: Category = {
     id,
     user_id: data.userId,
     name: data.name,
     color: data.color,
     created_at: now
   };
+
+  if (isWeb) {
+    const table = getLocalTable<Category>('categories');
+    table.push(newCat);
+    saveLocalTable('categories', table);
+    return newCat;
+  }
+
+  db.runSync(
+    'INSERT INTO categories (id, user_id, name, color, created_at) VALUES (?, ?, ?, ?, ?)',
+    [id, data.userId, data.name, data.color || null, now]
+  );
+  
+  return newCat;
 }
 
 // 4. Xóa category
 export function deleteCategory(id: string) {
+  if (isWeb) {
+    let table = getLocalTable<Category>('categories');
+    table = table.filter(x => x.id !== id);
+    saveLocalTable('categories', table);
+    return;
+  }
   db.runSync('DELETE FROM categories WHERE id = ?', [id]);
 }
 
 // 5. Thêm/Cập nhật category từ Supabase (dành cho sync)
 export function upsertCategoryLocal(cat: Category) {
+  if (isWeb) {
+    const table = getLocalTable<Category>('categories');
+    const idx = table.findIndex(x => x.id === cat.id);
+    if (idx >= 0) table[idx] = cat;
+    else table.push(cat);
+    saveLocalTable('categories', table);
+    return;
+  }
+
   db.runSync(
     `INSERT OR REPLACE INTO categories (id, user_id, name, color, created_at)
      VALUES (?, ?, ?, ?, ?)`,

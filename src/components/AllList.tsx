@@ -1,4 +1,5 @@
 import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Activity, toggleActivityStatus, deleteActivity } from '../database/activities';
 
 interface Props {
@@ -7,6 +8,8 @@ interface Props {
 }
 
 export default function AllList({ activities, onRefresh }: Props) {
+  const router = useRouter();
+  
   const confirmDelete = (id: string) => {
     Alert.alert('Xóa', 'Bạn có chắc muốn xóa?', [
       { text: 'Hủy', style: 'cancel' },
@@ -32,12 +35,15 @@ export default function AllList({ activities, onRefresh }: Props) {
           return (
             <TouchableOpacity 
               key={activity.id}
-              onPress={() => { toggleActivityStatus(activity.id, activity.status); onRefresh(); }}
+              onPress={() => router.push(`/activity/${activity.id}`)}
               className={`bg-notion-card border border-notion-border rounded-lg p-4 mb-3 flex-row items-center ${isCompleted ? 'opacity-50' : ''}`}
             >
-              <View className={`w-5 h-5 border rounded-sm mr-4 items-center justify-center ${isCompleted ? 'bg-notion-text border-notion-text' : 'border-notion-muted'}`}>
+              <TouchableOpacity 
+                onPress={() => { toggleActivityStatus(activity.id, activity.status); onRefresh(); }}
+                className={`w-5 h-5 border rounded-sm mr-4 items-center justify-center ${isCompleted ? 'bg-notion-text border-notion-text' : 'border-notion-muted'}`}
+              >
                 {isCompleted && <Text className="text-notion-bg text-xs">✓</Text>}
-              </View>
+              </TouchableOpacity>
               
               <View className="flex-1">
                 <Text className={`font-mono-bold text-base ${isCompleted ? 'text-notion-muted line-through' : 'text-notion-text'}`}>

@@ -1,4 +1,5 @@
-import { db } from './connection';
+import { db, isWeb, getLocalTable, saveLocalTable } from './connection';
+import { generateUUID } from '../utils/uuid';
 
 export interface Habit {
   id: string;
@@ -44,16 +45,10 @@ export function initHabitsTable() {
 }
 
 export function addHabit(data: { userId: string; name: string; icon: string; color: string }): Habit {
-  const id = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+  const id = generateUUID();
   const now = new Date().toISOString();
 
-  db.runSync(
-    `INSERT INTO habits (id, user_id, name, icon, color, created_at)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [id, data.userId, data.name, data.icon, data.color, now]
-  );
-
-  return {
+  const newHabit: Habit = {
     id,
     user_id: data.userId,
     name: data.name,
@@ -61,13 +56,35 @@ export function addHabit(data: { userId: string; name: string; icon: string; col
     color: data.color,
     created_at: now
   };
+
+  if (isWeb) {
+    const table = getLocalTable<Habit>('habits');
+    table.push(newHabit);
+    saveLocalTable('habits', table);
+    return newHabit;
+  }
+
+  db.runSync(
+    `INSERT INTO habits (id, user_id, name, icon, color, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [id, data.userId, data.name, data.icon, data.color, now]
+  );
+
+  return newHabit;
 }
 
 export function getHabits(): Habit[] {
+  if (isWeb) {
+    return getLocalTable<Habit>('habits')
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  }
   return db.getAllSync<Habit>('SELECT * FROM habits ORDER BY created_at ASC');
 }
 
 export function getAllHabitLogs(): HabitLog[] {
+  if (isWeb) {
+    return getLocalTable<HabitLog>('habit_logs');
+  }
   // SQLite stores boolean as 0 or 1. We need to map it.
   const rawLogs = db.getAllSync<any>('SELECT * FROM habit_logs');
   return rawLogs.map(l => ({
@@ -77,7 +94,20 @@ export function getAllHabitLogs(): HabitLog[] {
 }
 
 export function toggleHabitLog(habitId: string, logDate: string, isCompleted: boolean) {
-  const id = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+  const id = generateUUID();
+  
+  if (isWeb) {
+    const table = getLocalTable<HabitLog>('habit_logs');
+    const idx = table.findIndex(x => x.habit_id === habitId && x.log_date === logDate);
+    if (idx >= 0) {
+      table[idx].is_completed = isCompleted;
+    } else {
+      table.push({ id, habit_id: habitId, log_date: logDate, is_completed: isCompleted });
+    }
+    saveLocalTable('habit_logs', table);
+    return;
+  }
+
   // Sử dụng INSERT OR REPLACE nhờ UNIQUE(habit_id, log_date)
   db.runSync(
     `INSERT OR REPLACE INTO habit_logs (id, habit_id, log_date, is_completed)
@@ -92,7 +122,15 @@ export function toggleHabitLog(habitId: string, logDate: string, isCompleted: bo
 // Lấy danh sách thói quen kèm thông tin đã check-in hôm nay và số ngày liên tiếp (Streak)
 export function getHabitsWithTodayLog(todayDateString: string): HabitWithStreak[] {
   const habits = getHabits();
-  const allLogs = db.getAllSync<any>('SELECT * FROM habit_logs WHERE is_completed = 1 ORDER BY log_date DESC');
+  let allLogs: any[] = [];
+  
+  if (isWeb) {
+    allLogs = getLocalTable<HabitLog>('habit_logs')
+      .filter(x => x.is_completed)
+      .sort((a, b) => new Date(b.log_date).getTime() - new Date(a.log_date).getTime());
+  } else {
+    allLogs = db.getAllSync<any>('SELECT * FROM habit_logs WHERE is_completed = 1 ORDER BY log_date DESC');
+  }
   
   // Parse logs into a map for fast lookup
   const logsMap: Record<string, string[]> = {};
@@ -136,6 +174,15 @@ export function getHabitsWithTodayLog(todayDateString: string): HabitWithStreak[
 
 // Dùng cho hàm Sync
 export function upsertHabitLocal(habit: Habit) {
+  if (isWeb) {
+    const table = getLocalTable<Habit>('habits');
+    const idx = table.findIndex(x => x.id === habit.id);
+    if (idx >= 0) table[idx] = habit;
+    else table.push(habit);
+    saveLocalTable('habits', table);
+    return;
+  }
+
   db.runSync(
     `INSERT OR REPLACE INTO habits (id, user_id, name, icon, color, created_at)
      VALUES (?, ?, ?, ?, ?, ?)`,
@@ -144,6 +191,15 @@ export function upsertHabitLocal(habit: Habit) {
 }
 
 export function upsertHabitLogLocal(log: HabitLog) {
+  if (isWeb) {
+    const table = getLocalTable<HabitLog>('habit_logs');
+    const idx = table.findIndex(x => x.id === log.id);
+    if (idx >= 0) table[idx] = log;
+    else table.push(log);
+    saveLocalTable('habit_logs', table);
+    return;
+  }
+
   db.runSync(
     `INSERT OR REPLACE INTO habit_logs (id, habit_id, log_date, is_completed)
      VALUES (?, ?, ?, ?)`,
@@ -154,8 +210,22 @@ export function upsertHabitLogLocal(log: HabitLog) {
 // Automation: Sinh log mặc định (chưa hoàn thành) cho ngày mới để đồng bộ Cloud dễ dàng
 export function seedDailyHabitLogs(todayStr: string) {
   const habits = getHabits();
+  if (isWeb) {
+    const table = getLocalTable<HabitLog>('habit_logs');
+    let changed = false;
+    habits.forEach(h => {
+      const exists = table.find(x => x.habit_id === h.id && x.log_date === todayStr);
+      if (!exists) {
+        table.push({ id: generateUUID(), habit_id: h.id, log_date: todayStr, is_completed: false });
+        changed = true;
+      }
+    });
+    if (changed) saveLocalTable('habit_logs', table);
+    return;
+  }
+
   habits.forEach(h => {
-    const id = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+    const id = generateUUID();
     // Dùng INSERT OR IGNORE để không ghi đè nếu đã có log cho ngày hôm nay
     db.runSync(
       `INSERT OR IGNORE INTO habit_logs (id, habit_id, log_date, is_completed)

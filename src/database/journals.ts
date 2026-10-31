@@ -1,4 +1,5 @@
-import { db } from './connection';
+import { db, isWeb, getLocalTable, saveLocalTable } from './connection';
+import { generateUUID } from '../utils/uuid';
 
 export interface Journal {
   id: string;
@@ -36,25 +37,31 @@ export function initJournalsTable() {
 }
 
 export function getJournals(): Journal[] {
+  if (isWeb) {
+    return getLocalTable<Journal>('journals')
+      .sort((a, b) => {
+        const dateDiff = new Date(b.entry_date).getTime() - new Date(a.entry_date).getTime();
+        if (dateDiff !== 0) return dateDiff;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+  }
   return db.getAllSync<Journal>('SELECT * FROM journals ORDER BY entry_date DESC, created_at DESC');
 }
 
 export function getJournalById(id: string): Journal | null {
+  if (isWeb) {
+    const table = getLocalTable<Journal>('journals');
+    return table.find(x => x.id === id) || null;
+  }
   return db.getFirstSync<Journal>('SELECT * FROM journals WHERE id = ?', [id]);
 }
 
 export function addJournal(data: AddJournalData): Journal {
-  const id = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+  const id = generateUUID();
   const now = new Date().toISOString();
   const imagesStr = JSON.stringify(data.images || []);
-
-  db.runSync(
-    `INSERT INTO journals (id, user_id, entry_date, day_sequence, content, mood, images, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [id, data.userId, data.entryDate, data.daySequence || null, data.content || null, data.mood || null, imagesStr, now]
-  );
-
-  return {
+  
+  const newJournal: Journal = {
     id,
     user_id: data.userId,
     entry_date: data.entryDate,
@@ -64,10 +71,40 @@ export function addJournal(data: AddJournalData): Journal {
     images: imagesStr,
     created_at: now
   };
+
+  if (isWeb) {
+    const table = getLocalTable<Journal>('journals');
+    table.push(newJournal);
+    saveLocalTable('journals', table);
+    return newJournal;
+  }
+
+  db.runSync(
+    `INSERT INTO journals (id, user_id, entry_date, day_sequence, content, mood, images, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [id, data.userId, data.entryDate, data.daySequence || null, data.content || null, data.mood || null, imagesStr, now]
+  );
+
+  return newJournal;
 }
 
 export function updateJournal(id: string, data: AddJournalData) {
   const imagesStr = JSON.stringify(data.images || []);
+  
+  if (isWeb) {
+    const table = getLocalTable<Journal>('journals');
+    const idx = table.findIndex(x => x.id === id);
+    if (idx >= 0) {
+      table[idx].entry_date = data.entryDate;
+      table[idx].day_sequence = data.daySequence || undefined;
+      table[idx].content = data.content || undefined;
+      table[idx].mood = data.mood || undefined;
+      table[idx].images = imagesStr;
+      saveLocalTable('journals', table);
+    }
+    return;
+  }
+
   db.runSync(
     `UPDATE journals SET entry_date = ?, day_sequence = ?, content = ?, mood = ?, images = ? WHERE id = ?`,
     [data.entryDate, data.daySequence || null, data.content || null, data.mood || null, imagesStr, id]
@@ -75,10 +112,25 @@ export function updateJournal(id: string, data: AddJournalData) {
 }
 
 export function deleteJournal(id: string) {
+  if (isWeb) {
+    let table = getLocalTable<Journal>('journals');
+    table = table.filter(x => x.id !== id);
+    saveLocalTable('journals', table);
+    return;
+  }
   db.runSync('DELETE FROM journals WHERE id = ?', [id]);
 }
 
 export function upsertJournalLocal(journal: Journal) {
+  if (isWeb) {
+    const table = getLocalTable<Journal>('journals');
+    const idx = table.findIndex(x => x.id === journal.id);
+    if (idx >= 0) table[idx] = journal;
+    else table.push(journal);
+    saveLocalTable('journals', table);
+    return;
+  }
+
   db.runSync(
     `INSERT OR REPLACE INTO journals (id, user_id, entry_date, day_sequence, content, mood, images, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
